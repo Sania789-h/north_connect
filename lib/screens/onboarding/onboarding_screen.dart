@@ -119,29 +119,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Illustration Container
-                        Container(
-                          constraints: BoxConstraints(
-                            maxHeight: screenSize.height * 0.36,
-                            maxWidth: screenSize.width * 0.82,
-                          ),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFFF0FDFA).withValues(alpha: 0.6),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(1000),
-                            child: Image.asset(
-                              item.image,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(
-                                  Icons.image_outlined,
-                                  size: 120,
-                                  color: Color(0xFF067A46),
-                                );
-                              },
-                            ),
+                        // Illustration Image
+                        SizedBox(
+                          height: screenSize.height * 0.35,
+                          width: screenSize.width * 0.85,
+                          child: Image.asset(
+                            item.image,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.image_outlined,
+                                size: 120,
+                                color: Color(0xFF067A46),
+                              );
+                            },
                           ),
                         ),
 

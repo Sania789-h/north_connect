@@ -1,260 +1,398 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../core/constants/colors.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../core/constants/app_images.dart';
 import '../../core/utils/helpers.dart';
-import '../../widgets/destination_card.dart';
 import '../alerts/alerts_screen.dart';
-import '../network/network_screen.dart';
 import '../emergency/sos_screen.dart';
-import '../weather/weather_screen.dart';
+import '../network/network_screen.dart';
 import '../notifications/notifications_screen.dart';
+import '../weather/weather_screen.dart';
 
 class HomeScreen extends StatelessWidget {
+  final Function(int)? onNavigateTab;
   final VoidCallback? onExploreTap;
 
-  const HomeScreen({super.key, this.onExploreTap});
+  const HomeScreen({
+    super.key,
+    this.onNavigateTab,
+    this.onExploreTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          // Premium Hero Section
-          SliverAppBar(
-            expandedHeight: 300,
-            floating: false,
-            pinned: true,
-            backgroundColor: AppColors.primary,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  CachedNetworkImage(
-                    imageUrl: 'https://images.unsplash.com/photo-1624555130581-1d9cca783bc0?w=1000',
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                      child: const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      color: AppColors.primary,
-                      child: const Icon(Icons.image, color: Colors.white, size: 48),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.4),
-                          Colors.transparent,
-                          AppColors.primary.withValues(alpha: 0.95),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 20,
-                    left: 20,
-                    right: 20,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Welcome to",
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 16,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const Text(
-                          "Gilgit-Baltistan",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── 1. Top Header Bar ──
+              _buildTopHeader(context),
+              const SizedBox(height: 18),
+
+              // ── 2. Weather Forecast Banner ──
+              _buildWeatherCard(context),
+              const SizedBox(height: 22),
+
+              // ── 3. Quick Access Section ──
+              _buildQuickAccessSection(context),
+              const SizedBox(height: 24),
+
+              // ── 4. Latest Alerts Section ──
+              _buildLatestAlertsSection(context),
+              const SizedBox(height: 24),
+
+              // ── 5. Network Status Section ──
+              _buildNetworkStatusSection(context),
+              const SizedBox(height: 24),
+
+              // ── 6. Emergency SOS Banner ──
+              _buildEmergencyBanner(context),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 1. Header Bar ──
+  Widget _buildTopHeader(BuildContext context) {
+    return Row(
+      children: [
+        // GB Connect Logo
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Image.asset(
+              AppImages.logo,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                Icons.landscape_rounded,
+                color: Color(0xFF067A46),
+                size: 26,
               ),
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: CircleAvatar(
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  child: IconButton(
-                    icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
-                    onPressed: () {
-                      Helpers.push(context, const NotificationsScreen());
-                    },
+          ),
+        ),
+        const SizedBox(width: 10),
+
+        // App Title & Subtitle
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
                   ),
+                  children: const [
+                    TextSpan(
+                      text: 'GB ',
+                      style: TextStyle(color: Color(0xFF0F2C59)),
+                    ),
+                    TextSpan(
+                      text: 'CONNECT',
+                      style: TextStyle(color: Color(0xFF067A46)),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                'Stay Connected, Stay Safe',
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF64748B),
                 ),
               ),
             ],
           ),
-          
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Search Bar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: const TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search destinations, hotels...",
-                        prefixIcon: Icon(Icons.search, color: AppColors.textSecondary),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        filled: false,
-                        contentPadding: EdgeInsets.symmetric(vertical: 14),
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Featured Destinations",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          if (onExploreTap != null) {
-                            onExploreTap!();
-                          } else {
-                            Helpers.showSnackBar(context, "Navigating to Explore");
-                          }
-                        },
-                        child: const Text("See All", style: TextStyle(color: AppColors.secondary)),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Horizontal List of Destinations
-                  SizedBox(
-                    height: 280,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        DestinationCard(
-                          title: "Hunza Valley",
-                          location: "Gilgit-Baltistan",
-                          imageUrl: "https://picsum.photos/id/1036/800/600",
-                          rating: 4.9,
-                          onTap: () {
-                            Helpers.showSnackBar(context, "Viewing Hunza Valley details");
-                          },
-                        ),
-                        DestinationCard(
-                          title: "Skardu",
-                          location: "Baltistan Region",
-                          imageUrl: "https://picsum.photos/id/1043/800/600",
-                          rating: 4.8,
-                          onTap: () {
-                            Helpers.showSnackBar(context, "Viewing Skardu details");
-                          },
-                        ),
-                        DestinationCard(
-                          title: "Fairy Meadows",
-                          location: "Nanga Parbat",
-                          imageUrl: "https://picsum.photos/id/1044/800/600",
-                          rating: 4.7,
-                          onTap: () {
-                            Helpers.showSnackBar(context, "Viewing Fairy Meadows details");
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  const Text(
-                    "Quick Services",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Grid for legacy safety features
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    children: [
-                      _buildServiceItem(
-                        context,
-                        icon: Icons.emergency_outlined,
-                        label: "SOS",
-                        color: AppColors.error,
-                        onTap: () => Helpers.push(context, const SOSScreen()),
-                      ),
-                      _buildServiceItem(
-                        context,
-                        icon: Icons.warning_amber_rounded,
-                        label: "Alerts",
-                        color: AppColors.warning,
-                        onTap: () => Helpers.push(context, const AlertsScreen()),
-                      ),
-                      _buildServiceItem(
-                        context,
-                        icon: Icons.cloud_outlined,
-                        label: "Weather",
-                        color: Colors.blue,
-                        onTap: () => Helpers.push(context, const WeatherScreen()),
-                      ),
-                      _buildServiceItem(
-                        context,
-                        icon: Icons.wifi_rounded,
-                        label: "Network",
-                        color: Colors.purple,
-                        onTap: () => Helpers.push(context, const NetworkScreen()),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 100), // Padding for bottom nav
-                ],
+        ),
+
+        // Notification Bell Icon with Badge
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              onPressed: () {
+                Helpers.push(context, const NotificationsScreen());
+              },
+              icon: const Icon(
+                Icons.notifications_none_rounded,
+                color: Color(0xFF1E293B),
+                size: 26,
               ),
+            ),
+            Positioned(
+              right: 12,
+              top: 12,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEF4444),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 4),
+
+        // User Profile Avatar
+        GestureDetector(
+          onTap: () {
+            if (onNavigateTab != null) {
+              onNavigateTab!(4); // Profile tab index
+            }
+          },
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF0F2C59),
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const ClipOval(
+              child: Icon(
+                Icons.person_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── 2. Weather Card Banner ──
+  Widget _buildWeatherCard(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0EA5E9), // Sky Blue
+            Color(0xFF0284C7),
+            Color(0xFF1E3A8A), // Deep Navy Blue
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0284C7).withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Background scenic mountain glow accent
+          Positioned(
+            right: -10,
+            bottom: -10,
+            child: Icon(
+              Icons.terrain_rounded,
+              size: 170,
+              color: Colors.white.withValues(alpha: 0.15),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Location Selector & View Full Forecast
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Location Selector Chip
+                    GestureDetector(
+                      onTap: () {
+                        Helpers.showSnackBar(
+                            context, "Location set to Gilgit, Pakistan");
+                      },
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Gilgit, Pakistan',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // View Full Forecast Button
+                    GestureDetector(
+                      onTap: () {
+                        if (onNavigateTab != null) {
+                          onNavigateTab!(1); // Weather tab index
+                        } else {
+                          Helpers.push(context, const WeatherScreen());
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              'View Full Forecast',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              color: Colors.white,
+                              size: 10,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // Temp & Weather Info Row
+                Row(
+                  children: [
+                    // Weather Icon (Sun behind cloud)
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: const [
+                          Icon(
+                            Icons.wb_sunny_rounded,
+                            color: Color(0xFFFFB703),
+                            size: 44,
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Icon(
+                              Icons.cloud_rounded,
+                              color: Colors.white,
+                              size: 34,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+
+                    // Temp
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '18°C',
+                          style: GoogleFonts.outfit(
+                            fontSize: 38,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Partly Cloudy',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Bottom Weather Metrics Bar
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildMetricItem(Icons.water_drop_outlined, '37%', 'Humidity'),
+                      Container(
+                        width: 1,
+                        height: 24,
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
+                      _buildMetricItem(Icons.air_rounded, '12 km/h', 'Wind'),
+                      Container(
+                        width: 1,
+                        height: 24,
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
+                      _buildMetricItem(Icons.speed_rounded, '1012 hPa', 'Pressure'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -262,31 +400,695 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildServiceItem(BuildContext context, {required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+  Widget _buildMetricItem(IconData icon, String value, String label) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white, size: 16),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── 3. Quick Access Section ──
+  Widget _buildQuickAccessSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Quick Access',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0F2C59),
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                if (onNavigateTab != null) {
+                  onNavigateTab!(1);
+                }
+              },
+              child: Row(
+                children: [
+                  Text(
+                    'View All',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0284C7),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 11,
+                    color: Color(0xFF0284C7),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // Quick Items Row matching mockup
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // 1. Weather
+            _buildQuickItem(
+              customWidget: const Icon(
+                Icons.wb_sunny_rounded,
+                color: Color(0xFF38BDF8),
+                size: 28,
+              ),
+              label: 'Weather',
+              bgColor: const Color(0xFFF0F9FF),
+              onTap: () {
+                if (onNavigateTab != null) onNavigateTab!(1);
+              },
+            ),
+
+            // 2. Alerts (no badge '3')
+            _buildQuickItem(
+              customWidget: const Icon(
+                Icons.gpp_maybe_rounded,
+                color: Color(0xFFEF4444),
+                size: 28,
+              ),
+              label: 'Alerts',
+              bgColor: const Color(0xFFFEF2F2),
+              onTap: () {
+                if (onNavigateTab != null) onNavigateTab!(2);
+              },
+            ),
+
+            // 3. Network
+            _buildQuickItem(
+              customWidget: const Icon(
+                Icons.cell_tower_rounded,
+                color: Color(0xFF10B981),
+                size: 28,
+              ),
+              label: 'Network',
+              bgColor: const Color(0xFFECFDF5),
+              onTap: () {
+                if (onNavigateTab != null) onNavigateTab!(3);
+              },
+            ),
+
+            // 4. SOS
+            _buildQuickItem(
+              customWidget: Container(
+                width: 32,
+                height: 32,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEF4444),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    'SOS',
+                    style: GoogleFonts.outfit(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              label: 'SOS',
+              bgColor: const Color(0xFFFEF2F2),
+              onTap: () {
+                Helpers.push(context, const SOSScreen());
+              },
+            ),
+
+            // 5. Profile
+            _buildQuickItem(
+              customWidget: const Icon(
+                Icons.person_rounded,
+                color: Color(0xFFA855F7),
+                size: 28,
+              ),
+              label: 'Profile',
+              bgColor: const Color(0xFFFAF5FF),
+              onTap: () {
+                if (onNavigateTab != null) onNavigateTab!(4);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickItem({
+    required Widget customWidget,
+    required String label,
+    required Color bgColor,
+    String? badge,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 28),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: const Color(0xFFF1F5F9),
+                    width: 1,
+                  ),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Center(child: customWidget),
+                  ),
+                ),
+              ),
+              if (badge != null)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      badge,
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(
+            style: GoogleFonts.outfit(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: const Color(0xFF334155),
             ),
           ),
         ],
       ),
     );
   }
-}
+
+  // ── 4. Latest Alerts Section ──
+  Widget _buildLatestAlertsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Latest Alerts',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0F2C59),
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                if (onNavigateTab != null) {
+                  onNavigateTab!(2);
+                } else {
+                  Helpers.push(context, const AlertsScreen());
+                }
+              },
+              child: Row(
+                children: [
+                  Text(
+                    'View All',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0284C7),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 11,
+                    color: Color(0xFF0284C7),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // Alert Items List
+        _buildAlertCard(
+          context,
+          icon: Icons.landscape_rounded,
+          iconBgColor: const Color(0xFFEF4444),
+          title: 'Landslide Warning',
+          subtitle: 'Hunza, Gilgit-Baltistan',
+          timeAgo: '2h ago',
+          timeColor: const Color(0xFFEF4444),
+        ),
+        const SizedBox(height: 10),
+        _buildAlertCard(
+          context,
+          icon: Icons.water_rounded,
+          iconBgColor: const Color(0xFF0284C7),
+          title: 'Flood Advisory',
+          subtitle: 'Ghizer, Gilgit-Baltistan',
+          timeAgo: '5h ago',
+          timeColor: const Color(0xFF0284C7),
+        ),
+        const SizedBox(height: 10),
+        _buildAlertCard(
+          context,
+          icon: Icons.alt_route_rounded,
+          iconBgColor: const Color(0xFFF59E0B),
+          title: 'Road Closed',
+          subtitle: 'Babusar Top, Naran Road',
+          timeAgo: '1d ago',
+          timeColor: const Color(0xFFF59E0B),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAlertCard(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
+    required String timeAgo,
+    required Color timeColor,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (onNavigateTab != null) {
+            onNavigateTab!(2); // Alerts tab index
+          } else {
+            Helpers.push(context, const AlertsScreen());
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        splashColor: iconBgColor.withValues(alpha: 0.1),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(color: const Color(0xFFF1F5F9)),
+          ),
+          child: Row(
+            children: [
+              // Left Icon
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 14),
+
+              // Title & Subtitle
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.outfit(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F2C59),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Time Ago
+              Row(
+                children: [
+                  Text(
+                    timeAgo,
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: timeColor,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 12,
+                    color: timeColor,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 5. Network Status Section ──
+  Widget _buildNetworkStatusSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Network Status',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0F2C59),
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                if (onNavigateTab != null) {
+                  onNavigateTab!(3);
+                } else {
+                  Helpers.push(context, const NetworkScreen());
+                }
+              },
+              child: Row(
+                children: [
+                  Text(
+                    'View All',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0284C7),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 11,
+                    color: Color(0xFF0284C7),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // Single Card containing 4 carriers matching mockup
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+              ),
+            ],
+            border: Border.all(color: const Color(0xFFF1F5F9)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildCarrierItem(
+                logoWidget: const ScomLogo(),
+                bars: 4,
+                statusText: 'Good',
+                isFair: false,
+              ),
+              _buildCarrierItem(
+                logoWidget: const JazzLogo(),
+                bars: 4,
+                statusText: 'Good',
+                isFair: false,
+              ),
+              _buildCarrierItem(
+                logoWidget: const ZongLogo(),
+                bars: 4,
+                statusText: 'Good',
+                isFair: false,
+              ),
+              _buildCarrierItem(
+                logoWidget: const TelenorLogo(),
+                bars: 2,
+                statusText: 'Fair',
+                isFair: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCarrierItem({
+    required Widget logoWidget,
+    required int bars,
+    required String statusText,
+    required bool isFair,
+  }) {
+    final statusColor =
+        isFair ? const Color(0xFFF59E0B) : const Color(0xFF2ECC71);
+
+    return Column(
+      children: [
+        // Carrier Image Logo (Clean transparent logo)
+        SizedBox(
+          width: 44,
+          height: 34,
+          child: Center(child: logoWidget),
+        ),
+        const SizedBox(height: 10),
+
+        // Signal Bars
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: List.generate(4, (index) {
+            final active = index < bars;
+            final color = active ? statusColor : const Color(0xFFD1D5DB);
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              width: 4,
+              height: (index + 1) * 3.5 + 4,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 6),
+
+        // Status Text
+        Text(
+          statusText,
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: statusColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── 6. Emergency SOS Banner ──
+  Widget _buildEmergencyBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Color(0xFFEF4444), // Vibrant Red
+            Color(0xFFDC2626),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // White Circle Phone SOS Icon
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: const [
+                Icon(
+                  Icons.phone_in_talk_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 26,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+
+          // Text Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Emergency SOS',
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Tap to send your location to emergency contacts',
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Send SOS Button
+          GestureDetector(
+            onTap: () {
+              Helpers.push(context, const SOSScreen());
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Send SOS',
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFFDC2626),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 11,
+                    color: Color(0xFFDC2626),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

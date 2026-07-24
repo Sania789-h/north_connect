@@ -31,4 +31,7 @@ flutter:
 
   assets:
     - assests/images/
+    - assests/images/iccons/
+    - assests/images/onbording screen/
+
 

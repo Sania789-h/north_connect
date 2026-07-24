@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/constants/colors.dart';
-import '../../services/mock_database_service.dart';
-import 'add_weather_screen.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
@@ -11,196 +9,805 @@ class WeatherScreen extends StatefulWidget {
   State<WeatherScreen> createState() => _WeatherScreenState();
 }
 
-class _WeatherScreenState extends State<WeatherScreen> {
-  Future<List<Map<String, dynamic>>> getWeatherReports() async {
-    try {
-      final data = await Supabase.instance.client
-          .from('weather_reports')
-          .select()
-          .order('created_at', ascending: false);
+class _WeatherScreenState extends State<WeatherScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _fadeCtrl;
+  late AnimationController _slideCtrl;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
 
-      final dbReports = List<Map<String, dynamic>>.from(data);
-      
-      final localReports = MockDatabaseService.weatherReports;
-      final Set<String> existingIds = dbReports.map((r) => r['id']?.toString() ?? '').toSet();
-      
-      final combined = <Map<String, dynamic>>[];
-      combined.addAll(localReports.where((r) => !existingIds.contains(r['id']?.toString())));
-      combined.addAll(dbReports);
-      
-      combined.sort((a, b) {
-        final dateA = DateTime.parse(a['created_at'] ?? DateTime.now().toIso8601String());
-        final dateB = DateTime.parse(b['created_at'] ?? DateTime.now().toIso8601String());
-        return dateB.compareTo(dateA);
-      });
-      
-      return combined;
-    } catch (e) {
-      debugPrint("Supabase weather query failed, using offline fallback: $e");
-      return MockDatabaseService.weatherReports;
-    }
+  int _selectedHourIndex = 0;
+
+  final List<Map<String, dynamic>> _hourly = [
+    {'time': 'Now',   'icon': Icons.cloud_rounded,      'temp': '18°', 'color': Color(0xFF64748B)},
+    {'time': '11 AM', 'icon': Icons.wb_cloudy_rounded,  'temp': '19°', 'color': Color(0xFF94A3B8)},
+    {'time': '12 PM', 'icon': Icons.cloud_rounded,      'temp': '20°', 'color': Color(0xFF64748B)},
+    {'time': '1 PM',  'icon': Icons.wb_sunny_rounded,   'temp': '21°', 'color': Color(0xFFFBBF24)},
+    {'time': '2 PM',  'icon': Icons.wb_sunny_rounded,   'temp': '22°', 'color': Color(0xFFF59E0B)},
+    {'time': '3 PM',  'icon': Icons.wb_cloudy_rounded,  'temp': '22°', 'color': Color(0xFF94A3B8)},
+  ];
+
+  final List<Map<String, dynamic>> _daily = [
+    {'day': 'Thursday', 'icon': Icons.wb_sunny_rounded,  'iconColor': Color(0xFFFBBF24), 'high': '23°', 'low': '12°'},
+    {'day': 'Friday',   'icon': Icons.wb_sunny_rounded,  'iconColor': Color(0xFFF59E0B), 'high': '24°', 'low': '13°'},
+    {'day': 'Saturday', 'icon': Icons.wb_cloudy_rounded, 'iconColor': Color(0xFF94A3B8), 'high': '25°', 'low': '14°'},
+    {'day': 'Sunday',   'icon': Icons.wb_sunny_rounded,  'iconColor': Color(0xFFFBBF24), 'high': '22°', 'low': '11°'},
+    {'day': 'Monday',   'icon': Icons.cloud_rounded,     'iconColor': Color(0xFF64748B), 'high': '21°', 'low': '10°'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _slideCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
+    _slideAnim = Tween<Offset>(
+            begin: const Offset(0, 0.08), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOut));
+
+    _fadeCtrl.forward();
+    _slideCtrl.forward();
   }
 
-  IconData getWeatherIcon(String type) {
-    switch (type) {
-      case "Sunny":
-        return Icons.wb_sunny;
-      case "Cloudy":
-        return Icons.cloud;
-      case "Rainy":
-        return Icons.water_drop;
-      case "Snowfall":
-        return Icons.ac_unit;
-      case "Thunderstorm":
-        return Icons.thunderstorm;
-      default:
-        return Icons.cloud;
-    }
+  @override
+  void dispose() {
+    _fadeCtrl.dispose();
+    _slideCtrl.dispose();
+    super.dispose();
   }
 
-  Color getWeatherColor(String type) {
-    switch (type) {
-      case "Sunny":
-        return Colors.orange;
-      case "Cloudy":
-        return Colors.blueGrey;
-      case "Rainy":
-        return Colors.blue;
-      case "Snowfall":
-        return Colors.lightBlue;
-      case "Thunderstorm":
-        return Colors.purple;
-      default:
-        return Colors.teal;
-    }
+  void _onHourTap(int index) {
+    HapticFeedback.selectionClick();
+    setState(() => _selectedHourIndex = index);
+  }
+
+  void _onDayTap(Map<String, dynamic> day) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DayDetailSheet(day: day),
+    );
+  }
+
+  void _onAirQualityTap() {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _AirQualitySheet(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text("Weather Reports"),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const AddWeatherScreen(),
-            ),
-          );
-          setState(() {});
-        },
-        child: const Icon(Icons.add),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-        },
-        child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: getWeatherReports(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
+      backgroundColor: const Color(0xFFF0F4F8),
+      body: FadeTransition(
+        opacity: _fadeAnim,
+        child: SlideTransition(
+          position: _slideAnim,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // ── App Bar ──
+              SliverToBoxAdapter(child: _buildHeader()),
 
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  "Error: ${snapshot.error}",
-                  style: const TextStyle(color: AppColors.error),
+              // ── Main Weather Card ──
+              SliverToBoxAdapter(child: _buildMainCard()),
+
+              SliverToBoxAdapter(child: const SizedBox(height: 22)),
+
+              // ── Today's Forecast ──
+              SliverToBoxAdapter(child: _buildSectionTitle("Today's Forecast")),
+              SliverToBoxAdapter(child: const SizedBox(height: 10)),
+              SliverToBoxAdapter(child: _buildHourlyRow()),
+
+              SliverToBoxAdapter(child: const SizedBox(height: 22)),
+
+              // ── 5-Day Forecast ──
+              SliverToBoxAdapter(child: _buildDailyCard()),
+
+              SliverToBoxAdapter(child: const SizedBox(height: 16)),
+
+              // ── Air Quality ──
+              SliverToBoxAdapter(child: _buildAirQuality()),
+
+              SliverToBoxAdapter(child: const SizedBox(height: 28)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  Widget _buildHeader() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.maybePop(context),
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: Color(0x14000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2))
+                  ],
                 ),
-              );
-            }
-
-            final reports = snapshot.data ?? [];
-
-            if (reports.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 100),
-                  Center(
-                    child: Text(
-                      "No Weather Reports Found",
-                      style: TextStyle(color: AppColors.textSecondary),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18, color: Color(0xFF1E293B)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                children: [
+                  Text(
+                    'Weather',
+                    style: GoogleFonts.outfit(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E293B),
                     ),
                   ),
-                ],
-              );
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: reports.length,
-              itemBuilder: (context, index) {
-                final report = reports[index];
-                final type = report['weather_type'] ?? 'Sunny';
-                final weatherColor = getWeatherColor(type);
-
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: weatherColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            getWeatherIcon(type),
-                            size: 28,
-                            color: weatherColor,
-                          ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.location_on_rounded,
+                          size: 13, color: Color(0xFF3B82F6)),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Gilgit, Pakistan',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          color: const Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2))
+                ],
+              ),
+              child: const Icon(Icons.refresh_rounded,
+                  size: 20, color: Color(0xFF3B82F6)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  Widget _buildMainCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        width: double.infinity,
+        height: 178,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          color: const Color(0xFF1B547A),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x501B547A),
+              blurRadius: 20,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Stack(
+            children: [
+              // ── Right side: Mountain image clearly visible ──
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: 180,
+                child: Image.asset(
+                  'assests/images/onbording screen/onboarding_2.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Container(color: const Color(0xFF1B547A)),
+                ),
+              ),
+              // ── Left-to-right fade so content is readable ──
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF1B547A),   // solid teal left
+                        Color(0xBB1B547A),   // semi transparent
+                        Color(0x401B547A),   // fading to transparent
+                        Color(0x001B547A),   // fully clear right
+                      ],
+                      stops: [0.0, 0.45, 0.65, 1.0],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
+              ),
+              // ── Dark overlay at bottom for stats readability ──
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 56,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0x00000000), Color(0x66000000)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ),
+              // ── Content ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Icon + Temp row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Sun on top, Cloud overlapping bottom-right
+                        SizedBox(
+                          width: 70,
+                          height: 60,
+                          child: Stack(
+                            clipBehavior: Clip.none,
                             children: [
-                              Text(
-                                report['location'] ?? '',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                child: Icon(
+                                  Icons.wb_sunny_rounded,
+                                  size: 48,
+                                  color: Colors.amber.shade300,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "$type • Temp: ${report['temperature'] ?? ''}",
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                report['description'] ?? '',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textSecondary,
+                              Positioned(
+                                bottom: -4,
+                                right: -4,
+                                child: const Icon(
+                                  Icons.cloud_rounded,
+                                  size: 38,
+                                  color: Color(0xF5FFFFFF),
                                 ),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '18°C',
+                              style: GoogleFonts.outfit(
+                                fontSize: 46,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                height: 1.05,
+                              ),
+                            ),
+                            Text(
+                              'Partly Cloudy',
+                              style: GoogleFonts.outfit(
+                                fontSize: 14,
+                                color: const Color(0xCCFFFFFF),
+                                fontWeight: FontWeight.w400,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                  ),
-                );
-              },
-            );
-          },
+                    const Spacer(),
+                    // Stats row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _stat(Icons.water_drop_outlined, '37%', 'Humidity'),
+                        _vDivider(),
+                        _stat(Icons.air_rounded, '12 km/h', 'Wind'),
+                        _vDivider(),
+                        _stat(Icons.speed_rounded, '1012 hPa', 'Pressure'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _vDivider() => Container(
+        width: 1,
+        height: 28,
+        color: const Color(0x40FFFFFF),
+      );
+
+  Widget _stat(IconData icon, String val, String label) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: const Color(0xCCFFFFFF)),
+        const SizedBox(width: 5),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(val,
+                style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white)),
+            Text(label,
+                style: GoogleFonts.outfit(
+                    fontSize: 10, color: const Color(0x99FFFFFF))),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        title,
+        style: GoogleFonts.outfit(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF1E293B),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  Widget _buildHourlyRow() {
+    return SizedBox(
+      height: 92,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _hourly.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, i) {
+          final item = _hourly[i];
+          final bool selected = i == _selectedHourIndex;
+          return GestureDetector(
+            onTap: () => _onHourTap(i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              width: 66,
+              decoration: BoxDecoration(
+                color: selected
+                    ? const Color(0xFF1B547A)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: selected
+                        ? const Color(0x401B547A)
+                        : const Color(0x10000000),
+                    blurRadius: selected ? 10 : 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    item['time'],
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      color: selected
+                          ? const Color(0xCCFFFFFF)
+                          : const Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Icon(
+                    item['icon'] as IconData,
+                    size: 22,
+                    color: selected
+                        ? Colors.white
+                        : (item['color'] as Color),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item['temp'],
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: selected
+                          ? Colors.white
+                          : const Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  Widget _buildDailyCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0E000000), blurRadius: 10, offset: Offset(0, 3))
+        ],
+      ),
+      child: Column(
+        children: List.generate(_daily.length, (i) {
+          final item = _daily[i];
+          final isLast = i == _daily.length - 1;
+          return InkWell(
+            onTap: () => _onDayTap(item),
+            borderRadius: BorderRadius.vertical(
+              top: i == 0 ? const Radius.circular(20) : Radius.zero,
+              bottom: isLast ? const Radius.circular(20) : Radius.zero,
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 13),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          item['day'],
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        item['icon'] as IconData,
+                        size: 24,
+                        color: item['iconColor'] as Color,
+                      ),
+                      const Spacer(),
+                      Text(
+                        item['high'],
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        item['low'],
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isLast)
+                  const Divider(
+                      height: 1, indent: 16, endIndent: 16,
+                      color: Color(0xFFF1F5F9)),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  Widget _buildAirQuality() {
+    return GestureDetector(
+      onTap: _onAirQualityTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0E000000),
+                blurRadius: 10,
+                offset: Offset(0, 3))
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFF22C55E).withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.eco_rounded,
+                  color: Color(0xFF22C55E), size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Air Quality',
+                      style: GoogleFonts.outfit(
+                          fontSize: 12, color: const Color(0xFF64748B))),
+                  Text('Good',
+                      style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF22C55E))),
+                ],
+              ),
+            ),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text('32 AQI',
+                  style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF16A34A))),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right_rounded,
+                color: Color(0xFF94A3B8), size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Day Detail Bottom Sheet
+// ═══════════════════════════════════════════════
+class _DayDetailSheet extends StatelessWidget {
+  final Map<String, dynamic> day;
+  const _DayDetailSheet({required this.day});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(4))),
+          const SizedBox(height: 20),
+          Icon(day['icon'] as IconData,
+              size: 56, color: day['iconColor'] as Color),
+          const SizedBox(height: 12),
+          Text(day['day'],
+              style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1E293B))),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(day['high'],
+                  style: GoogleFonts.outfit(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E293B))),
+              const SizedBox(width: 12),
+              Text('/ ${day['low']}',
+                  style: GoogleFonts.outfit(
+                      fontSize: 24,
+                      color: const Color(0xFF94A3B8))),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _infoTile(Icons.water_drop_outlined, '42%', 'Humidity'),
+              _infoTile(Icons.air_rounded, '14 km/h', 'Wind'),
+              _infoTile(Icons.umbrella_rounded, '10%', 'Rain'),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoTile(IconData icon, String val, String label) {
+    return Column(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F4F8),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(icon, size: 22, color: const Color(0xFF1B547A)),
+        ),
+        const SizedBox(height: 6),
+        Text(val,
+            style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1E293B))),
+        Text(label,
+            style: GoogleFonts.outfit(
+                fontSize: 11, color: const Color(0xFF94A3B8))),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Air Quality Bottom Sheet
+// ═══════════════════════════════════════════════
+class _AirQualitySheet extends StatelessWidget {
+  const _AirQualitySheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(4))),
+          const SizedBox(height: 20),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: const BoxDecoration(
+              color: Color(0xFFDCFCE7),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.eco_rounded,
+                color: Color(0xFF22C55E), size: 34),
+          ),
+          const SizedBox(height: 12),
+          Text('Air Quality Index',
+              style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1E293B))),
+          const SizedBox(height: 4),
+          Text('Gilgit, Pakistan',
+              style: GoogleFonts.outfit(
+                  fontSize: 13, color: const Color(0xFF64748B))),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('32 AQI',
+                      style: GoogleFonts.outfit(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF16A34A))),
+                  Text('Good',
+                      style: GoogleFonts.outfit(
+                          fontSize: 14, color: const Color(0xFF22C55E))),
+                ]),
+                const Icon(Icons.eco_rounded,
+                    size: 48, color: Color(0xFF22C55E)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _aqiTile('PM2.5', '12 µg/m³'),
+              _aqiTile('PM10',  '24 µg/m³'),
+              _aqiTile('O₃',    '38 ppb'),
+              _aqiTile('NO₂',   '8 ppb'),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _aqiTile(String label, String val) {
+    return Column(
+      children: [
+        Text(val,
+            style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1E293B))),
+        Text(label,
+            style: GoogleFonts.outfit(
+                fontSize: 11, color: const Color(0xFF94A3B8))),
+      ],
     );
   }
 }
