@@ -208,180 +208,35 @@ class _WeatherScreenState extends State<WeatherScreen>
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         width: double.infinity,
-        height: 178,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          color: const Color(0xFF1B547A),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x501B547A),
-              blurRadius: 20,
+              color: Color(0x401B547A),
+              blurRadius: 24,
               offset: Offset(0, 8),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: Stack(
-            children: [
-              // ── Right side: Mountain image clearly visible ──
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 180,
-                child: Image.asset(
-                  'assests/images/onbording screen/onboarding_2.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      Container(color: const Color(0xFF1B547A)),
-                ),
+          borderRadius: BorderRadius.circular(24),
+          child: Image.asset(
+            'assests/images/weather_image.png',
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+            errorBuilder: (_, __, ___) => Container(
+              height: 180,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B547A),
+                borderRadius: BorderRadius.circular(24),
               ),
-              // ── Left-to-right fade so content is readable ──
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0xFF1B547A),   // solid teal left
-                        Color(0xBB1B547A),   // semi transparent
-                        Color(0x401B547A),   // fading to transparent
-                        Color(0x001B547A),   // fully clear right
-                      ],
-                      stops: [0.0, 0.45, 0.65, 1.0],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                  ),
-                ),
+              child: const Center(
+                child: Icon(Icons.cloud_rounded, size: 48, color: Colors.white54),
               ),
-              // ── Dark overlay at bottom for stats readability ──
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: 56,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0x00000000), Color(0x66000000)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                ),
-              ),
-              // ── Content ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Icon + Temp row
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Sun on top, Cloud overlapping bottom-right
-                        SizedBox(
-                          width: 70,
-                          height: 60,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                child: Icon(
-                                  Icons.wb_sunny_rounded,
-                                  size: 48,
-                                  color: Colors.amber.shade300,
-                                ),
-                              ),
-                              Positioned(
-                                bottom: -4,
-                                right: -4,
-                                child: const Icon(
-                                  Icons.cloud_rounded,
-                                  size: 38,
-                                  color: Color(0xF5FFFFFF),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '18°C',
-                              style: GoogleFonts.outfit(
-                                fontSize: 46,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                height: 1.05,
-                              ),
-                            ),
-                            Text(
-                              'Partly Cloudy',
-                              style: GoogleFonts.outfit(
-                                fontSize: 14,
-                                color: const Color(0xCCFFFFFF),
-                                fontWeight: FontWeight.w400,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    // Stats row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _stat(Icons.water_drop_outlined, '37%', 'Humidity'),
-                        _vDivider(),
-                        _stat(Icons.air_rounded, '12 km/h', 'Wind'),
-                        _vDivider(),
-                        _stat(Icons.speed_rounded, '1012 hPa', 'Pressure'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _vDivider() => Container(
-        width: 1,
-        height: 28,
-        color: const Color(0x40FFFFFF),
-      );
-
-  Widget _stat(IconData icon, String val, String label) {
-    return Row(
-      children: [
-        Icon(icon, size: 15, color: const Color(0xCCFFFFFF)),
-        const SizedBox(width: 5),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(val,
-                style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white)),
-            Text(label,
-                style: GoogleFonts.outfit(
-                    fontSize: 10, color: const Color(0x99FFFFFF))),
-          ],
-        ),
-      ],
     );
   }
 
@@ -490,12 +345,9 @@ class _WeatherScreenState extends State<WeatherScreen>
         children: List.generate(_daily.length, (i) {
           final item = _daily[i];
           final isLast = i == _daily.length - 1;
-          return InkWell(
+          return GestureDetector(
             onTap: () => _onDayTap(item),
-            borderRadius: BorderRadius.vertical(
-              top: i == 0 ? const Radius.circular(20) : Radius.zero,
-              bottom: isLast ? const Radius.circular(20) : Radius.zero,
-            ),
+            behavior: HitTestBehavior.opaque,
             child: Column(
               children: [
                 Padding(

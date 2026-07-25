@@ -160,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Top Skip Button
+                  // Top Skip Now Button
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -172,12 +172,30 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       style: TextButton.styleFrom(
                         foregroundColor: const Color(0xFF475569),
-                        textStyle: GoogleFonts.outfit(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      child: const Text('Skip'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Skip Now',
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF475569),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 14,
+                            color: Color(0xFF475569),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
