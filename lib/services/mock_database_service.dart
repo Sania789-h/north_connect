@@ -4,30 +4,57 @@ class MockDatabaseService {
   static final List<AlertModel> _alerts = [
     AlertModel(
       id: "a1",
-      title: "Landslide Blockage near Attabad Lake",
-      description: "A minor landslide has occurred near the Karakoram Highway bypass. Traffic is diverted. Local teams are clearing the debris.",
-      category: "Road Alert",
-      location: "Hunza",
+      title: "Landslide Warning",
+      description: "A major landslide risk has been identified. Steep slopes are saturated due to continuous rainfall. Avoid travel near mountainous edges and follow official diversion routes.",
+      category: "Safety",
+      location: "Hunza, Gilgit-Baltistan",
       severity: "Critical",
       createdAt: DateTime.now().subtract(const Duration(hours: 2)),
     ),
     AlertModel(
       id: "a2",
-      title: "Karakoram Highway Road Clearance",
-      description: "The main highway route near Gilgit City has been cleared of snow and rocks. All passenger vehicles can pass freely.",
-      category: "Road Alert",
-      location: "Gilgit",
-      severity: "Low",
+      title: "Flood Advisory",
+      description: "River water levels are rising rapidly due to glacial melt and heavy upstream rainfall. Low-lying areas near river banks are at risk of flash flooding. Move to higher ground if advised.",
+      category: "Weather",
+      location: "Ghizer, Gilgit-Baltistan",
+      severity: "High",
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
     ),
     AlertModel(
       id: "a3",
-      title: "Expected Snowfall & Temperature Drop",
-      description: "High altitude regions in Skardu expect moderate to heavy snow over the next 24 hours. Carry tire chains.",
-      category: "Weather Alert",
-      location: "Skardu",
+      title: "Road Closed",
+      description: "Babusar Top section of Naran Road is temporarily closed due to snow accumulation and icy conditions. Maintenance crews are working to clear the route. Expected reopening in 6-8 hours.",
+      category: "Road",
+      location: "Babusar Top, Naran Road",
       severity: "High",
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+    AlertModel(
+      id: "a4",
+      title: "Heavy Rain Alert",
+      description: "Intense rainfall expected over the next 12-24 hours. Risk of urban flooding, reduced visibility, and slippery roads. Postpone non-essential travel and secure outdoor belongings.",
+      category: "Weather",
+      location: "Skardu, Gilgit-Baltistan",
+      severity: "Medium",
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    AlertModel(
+      id: "a5",
+      title: "Snowfall Warning",
+      description: "Heavy to moderate snowfall forecast for high-altitude regions. Road surfaces will become icy and dangerous. Ensure vehicles are equipped with tire chains and carry emergency supplies.",
+      category: "Weather",
+      location: "Astore, Gilgit-Baltistan",
+      severity: "Medium",
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    AlertModel(
+      id: "a6",
+      title: "High Wind Alert",
+      description: "Strong wind gusts up to 80 km/h expected. Risk of falling trees, damaged structures, and power outages. Secure loose outdoor items and exercise caution while driving high-profile vehicles.",
+      category: "Safety",
+      location: "Ghanche, Gilgit-Baltistan",
+      severity: "Medium",
+      createdAt: DateTime.now().subtract(const Duration(days: 3)),
     ),
   ];
 
@@ -119,6 +146,13 @@ class MockDatabaseService {
   // Add Methods
   static void addAlert(AlertModel alert) {
     _alerts.insert(0, alert);
+  }
+
+  static bool deleteAlert(String? id) {
+    if (id == null || id.isEmpty) return false;
+    final initialLength = _alerts.length;
+    _alerts.removeWhere((a) => a.id == id);
+    return _alerts.length < initialLength;
   }
 
   static void updateOfflineProfile(Map<String, dynamic> profile) {

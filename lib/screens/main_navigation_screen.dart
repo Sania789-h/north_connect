@@ -87,17 +87,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   activeIcon: Icon(Icons.cloud_rounded),
                   label: "Weather",
                 ),
-                BottomNavigationBarItem(
-                  icon: Badge(
-                    label: const Text('3', style: TextStyle(fontSize: 10, color: Colors.white)),
-                    backgroundColor: const Color(0xFFEF4444),
-                    child: const Icon(Icons.notifications_none_rounded),
-                  ),
-                  activeIcon: Badge(
-                    label: const Text('3', style: TextStyle(fontSize: 10, color: Colors.white)),
-                    backgroundColor: const Color(0xFFEF4444),
-                    child: const Icon(Icons.notifications_rounded),
-                  ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.notifications_none_rounded),
+                  activeIcon: Icon(Icons.notifications_rounded),
                   label: "Alerts",
                 ),
                 const BottomNavigationBarItem(
