@@ -1,60 +1,109 @@
 import '../models/alert_model.dart';
+import '../models/notification_model.dart';
 
 class MockDatabaseService {
+  static final List<NotificationModel> _notifications = [
+    NotificationModel(
+      id: 'n1',
+      title: 'Emergency Alert: Landslide Warning',
+      description:
+          'A minor landslide has been reported near Attabad Lake, Hunza. Travelers are advised to avoid the Karakoram Highway section between Aliabad and Gulmit until further notice. Local rescue teams are on-site.',
+      category: 'Emergency Alert',
+      isRead: false,
+      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+    ),
+    NotificationModel(
+      id: 'n2',
+      title: 'Heavy Snowfall Expected in Skardu',
+      description:
+          'Meteorological department has issued an alert for moderate to heavy snowfall in Skardu and surrounding high-altitude regions over the next 24 hours. Temperature may drop to -8°C.',
+      category: 'Weather',
+      isRead: false,
+      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+    ),
+    NotificationModel(
+      id: 'n3',
+      title: 'Road Construction: Babusar Top',
+      description:
+          'Maintenance work is in progress on N-15 at Babusar Top. Expect delays of 2-3 hours. Work scheduled from 8 AM to 5 PM daily until completion. Alternative route via Kaghan Valley is open.',
+      category: 'Road Alert',
+      isRead: false,
+      createdAt: DateTime.now().subtract(const Duration(hours: 8)),
+    ),
+    NotificationModel(
+      id: 'n4',
+      title: 'SCOM Network Restored in Deosai',
+      description:
+          'SCOM mobile network services have been fully restored in Deosai Plains and surrounding areas after a 12-hour outage caused by a damaged fiber optic cable.',
+      category: 'Network',
+      isRead: true,
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+    NotificationModel(
+      id: 'n5',
+      title: 'SOS Alert Acknowledged',
+      description:
+          'Your SOS alert from Nagar Valley has been received by local emergency response team. Rescue vehicle dispatched with medical supplies. Estimated arrival: 45 minutes.',
+      category: 'SOS',
+      isRead: true,
+      createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
+    ),
+    NotificationModel(
+      id: 'n6',
+      title: 'Rainfall Advisory: Gilgit Region',
+      description:
+          'Light to moderate rainfall expected in Gilgit city and adjoining areas this evening. Drivers are advised to exercise caution due to slippery roads and reduced visibility.',
+      category: 'Weather',
+      isRead: true,
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    NotificationModel(
+      id: 'n7',
+      title: 'Road Clearance Complete: KKH',
+      description:
+          'The Karakoram Highway section near Gilgit city that was blocked due to a rockslide has been cleared. Normal traffic flow has resumed.',
+      category: 'Road Alert',
+      isRead: true,
+      createdAt: DateTime.now().subtract(const Duration(days: 3)),
+    ),
+    NotificationModel(
+      id: 'n8',
+      title: 'Jazz Network Maintenance Tonight',
+      description:
+          'Scheduled network maintenance for Jazz subscribers in the Skardu region tonight from 2 AM to 4 AM. Brief service interruptions may occur during this window.',
+      category: 'Network',
+      isRead: false,
+      createdAt: DateTime.now().subtract(const Duration(hours: 12)),
+    ),
+  ];
+
   static final List<AlertModel> _alerts = [
     AlertModel(
       id: "a1",
-      title: "Landslide Warning",
-      description: "A major landslide risk has been identified. Steep slopes are saturated due to continuous rainfall. Avoid travel near mountainous edges and follow official diversion routes.",
-      category: "Safety",
-      location: "Hunza, Gilgit-Baltistan",
+      title: "Landslide Blockage near Attabad Lake",
+      description: "A minor landslide has occurred near the Karakoram Highway bypass. Traffic is diverted. Local teams are clearing the debris.",
+      category: "Road Alert",
+      location: "Hunza",
       severity: "Critical",
       createdAt: DateTime.now().subtract(const Duration(hours: 2)),
     ),
     AlertModel(
       id: "a2",
-      title: "Flood Advisory",
-      description: "River water levels are rising rapidly due to glacial melt and heavy upstream rainfall. Low-lying areas near river banks are at risk of flash flooding. Move to higher ground if advised.",
-      category: "Weather",
-      location: "Ghizer, Gilgit-Baltistan",
-      severity: "High",
+      title: "Karakoram Highway Road Clearance",
+      description: "The main highway route near Gilgit City has been cleared of snow and rocks. All passenger vehicles can pass freely.",
+      category: "Road Alert",
+      location: "Gilgit",
+      severity: "Low",
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
     ),
     AlertModel(
       id: "a3",
-      title: "Road Closed",
-      description: "Babusar Top section of Naran Road is temporarily closed due to snow accumulation and icy conditions. Maintenance crews are working to clear the route. Expected reopening in 6-8 hours.",
-      category: "Road",
-      location: "Babusar Top, Naran Road",
+      title: "Expected Snowfall & Temperature Drop",
+      description: "High altitude regions in Skardu expect moderate to heavy snow over the next 24 hours. Carry tire chains.",
+      category: "Weather Alert",
+      location: "Skardu",
       severity: "High",
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    AlertModel(
-      id: "a4",
-      title: "Heavy Rain Alert",
-      description: "Intense rainfall expected over the next 12-24 hours. Risk of urban flooding, reduced visibility, and slippery roads. Postpone non-essential travel and secure outdoor belongings.",
-      category: "Weather",
-      location: "Skardu, Gilgit-Baltistan",
-      severity: "Medium",
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    AlertModel(
-      id: "a5",
-      title: "Snowfall Warning",
-      description: "Heavy to moderate snowfall forecast for high-altitude regions. Road surfaces will become icy and dangerous. Ensure vehicles are equipped with tire chains and carry emergency supplies.",
-      category: "Weather",
-      location: "Astore, Gilgit-Baltistan",
-      severity: "Medium",
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    AlertModel(
-      id: "a6",
-      title: "High Wind Alert",
-      description: "Strong wind gusts up to 80 km/h expected. Risk of falling trees, damaged structures, and power outages. Secure loose outdoor items and exercise caution while driving high-profile vehicles.",
-      category: "Safety",
-      location: "Ghanche, Gilgit-Baltistan",
-      severity: "Medium",
-      createdAt: DateTime.now().subtract(const Duration(days: 3)),
     ),
   ];
 
@@ -142,17 +191,14 @@ class MockDatabaseService {
   static List<Map<String, dynamic>> get networkReports => List.from(_networkReports);
   static List<Map<String, dynamic>> get sosAlerts => List.from(_sosAlerts);
   static Map<String, dynamic>? get offlineProfile => _offlineProfile;
+  static List<NotificationModel> get notifications => List.from(_notifications);
+
+  static int get unreadNotificationCount =>
+      _notifications.where((n) => !n.isRead).length;
 
   // Add Methods
   static void addAlert(AlertModel alert) {
     _alerts.insert(0, alert);
-  }
-
-  static bool deleteAlert(String? id) {
-    if (id == null || id.isEmpty) return false;
-    final initialLength = _alerts.length;
-    _alerts.removeWhere((a) => a.id == id);
-    return _alerts.length < initialLength;
   }
 
   static void updateOfflineProfile(Map<String, dynamic> profile) {
@@ -182,5 +228,38 @@ class MockDatabaseService {
       'status': 'Active',
       'created_at': DateTime.now().toIso8601String(),
     });
+  }
+
+  // Notification Methods
+  static void addNotification(NotificationModel notification) {
+    final newNotif = notification.copyWith(
+      id: notification.id ?? 'notif_local_${DateTime.now().millisecondsSinceEpoch}',
+      createdAt: notification.createdAt ?? DateTime.now(),
+    );
+    _notifications.insert(0, newNotif);
+  }
+
+  static void markNotificationAsRead(String id) {
+    final index = _notifications.indexWhere((n) => n.id == id);
+    if (index != -1) {
+      _notifications[index] = _notifications[index].copyWith(isRead: true);
+    }
+  }
+
+  static void markAllNotificationsAsRead() {
+    for (int i = 0; i < _notifications.length; i++) {
+      _notifications[i] = _notifications[i].copyWith(isRead: true);
+    }
+  }
+
+  static void deleteNotification(String id) {
+    _notifications.removeWhere((n) => n.id == id);
+  }
+
+  static List<NotificationModel> getNotificationsByCategory(String? category) {
+    if (category == null || category == 'All') {
+      return List.from(_notifications);
+    }
+    return _notifications.where((n) => n.category == category).toList();
   }
 }

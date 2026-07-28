@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_images.dart';
+import '../../services/weather_service.dart';
 
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
@@ -18,23 +19,9 @@ class _WeatherScreenState extends State<WeatherScreen>
   late Animation<Offset> _slideAnim;
 
   int _selectedHourIndex = 0;
-
-  final List<Map<String, dynamic>> _hourly = [
-    {'time': 'Now',   'icon': Icons.cloud_rounded,      'temp': '18°', 'color': Color(0xFF64748B)},
-    {'time': '11 AM', 'icon': Icons.wb_cloudy_rounded,  'temp': '19°', 'color': Color(0xFF94A3B8)},
-    {'time': '12 PM', 'icon': Icons.cloud_rounded,      'temp': '20°', 'color': Color(0xFF64748B)},
-    {'time': '1 PM',  'icon': Icons.wb_sunny_rounded,   'temp': '21°', 'color': Color(0xFFFBBF24)},
-    {'time': '2 PM',  'icon': Icons.wb_sunny_rounded,   'temp': '22°', 'color': Color(0xFFF59E0B)},
-    {'time': '3 PM',  'icon': Icons.wb_cloudy_rounded,  'temp': '22°', 'color': Color(0xFF94A3B8)},
-  ];
-
-  final List<Map<String, dynamic>> _daily = [
-    {'day': 'Thursday', 'icon': Icons.wb_sunny_rounded,  'iconColor': Color(0xFFFBBF24), 'high': '23°', 'low': '12°'},
-    {'day': 'Friday',   'icon': Icons.wb_sunny_rounded,  'iconColor': Color(0xFFF59E0B), 'high': '24°', 'low': '13°'},
-    {'day': 'Saturday', 'icon': Icons.wb_cloudy_rounded, 'iconColor': Color(0xFF94A3B8), 'high': '25°', 'low': '14°'},
-    {'day': 'Sunday',   'icon': Icons.wb_sunny_rounded,  'iconColor': Color(0xFFFBBF24), 'high': '22°', 'low': '11°'},
-    {'day': 'Monday',   'icon': Icons.cloud_rounded,     'iconColor': Color(0xFF64748B), 'high': '21°', 'low': '10°'},
-  ];
+  bool _loading = true;
+  String _error = '';
+  WeatherData? _data;
 
   @override
   void initState() {
@@ -48,8 +35,7 @@ class _WeatherScreenState extends State<WeatherScreen>
             begin: const Offset(0, 0.08), end: Offset.zero)
         .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOut));
 
-    _fadeCtrl.forward();
-    _slideCtrl.forward();
+    _loadWeather();
   }
 
   @override
@@ -59,10 +45,85 @@ class _WeatherScreenState extends State<WeatherScreen>
     super.dispose();
   }
 
+  Future<void> _loadWeather() async {
+    try {
+      setState(() {
+        _loading = true;
+        _error = '';
+      });
+      final data = await WeatherService.current;
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _loading = false;
+      });
+      _fadeCtrl.forward();
+      _slideCtrl.forward();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  IconData _conditionIcon(WeatherCondition c, {bool outlined = false}) {
+    switch (c) {
+      case WeatherCondition.sunny:
+        return Icons.wb_sunny_rounded;
+      case WeatherCondition.partlyCloudy:
+        return outlined ? Icons.wb_cloudy_outlined : Icons.wb_cloudy_rounded;
+      case WeatherCondition.cloudy:
+        return outlined ? Icons.cloud_outlined : Icons.cloud_rounded;
+      case WeatherCondition.rainy:
+        return outlined ? Icons.grain_outlined : Icons.water_drop_rounded;
+      case WeatherCondition.stormy:
+        return Icons.thunderstorm_rounded;
+      case WeatherCondition.snowy:
+        return outlined ? Icons.ac_unit_outlined : Icons.ac_unit_rounded;
+      case WeatherCondition.foggy:
+        return Icons.cloud_rounded;
+      case WeatherCondition.windy:
+        return Icons.air_rounded;
+      default:
+        return Icons.wb_sunny_rounded;
+    }
+  }
+
+  Color _conditionColor(WeatherCondition c) {
+    switch (c) {
+      case WeatherCondition.sunny:
+        return const Color(0xFFFFB020);
+      case WeatherCondition.partlyCloudy:
+        return const Color(0xFF94A3B8);
+      case WeatherCondition.cloudy:
+        return const Color(0xFF64748B);
+      case WeatherCondition.rainy:
+        return const Color(0xFF3B82F6);
+      case WeatherCondition.stormy:
+        return const Color(0xFF7C3AED);
+      case WeatherCondition.snowy:
+        return const Color(0xFF06B6D4);
+      case WeatherCondition.foggy:
+        return const Color(0xFF9CA3AF);
+      case WeatherCondition.windy:
+        return const Color(0xFF14B8A6);
+    }
+  }
+
+  String _fmtT(double v) => '${v.round()}°';
+
+  void _onRefreshTap() {
+    HapticFeedback.lightImpact();
+    _loadWeather();
+  }
+
   void _onHourTap(int index) {
+    if (_data == null) return;
     HapticFeedback.selectionClick();
     setState(() => _selectedHourIndex = index);
-    final item = _hourly[index];
+    final item = _data!.hourly[index];
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -71,15 +132,19 @@ class _WeatherScreenState extends State<WeatherScreen>
       enableDrag: true,
       useSafeArea: true,
       builder: (_) => _HourDetailSheet(
-        time: item['time'] as String,
-        temp: item['temp'] as String,
-        icon: item['icon'] as IconData,
-        color: item['color'] as Color,
+        time: item.timeLabel,
+        temp: _fmtT(item.tempC),
+        icon: _conditionIcon(item.condition),
+        color: _conditionColor(item.condition),
+        humidity: '${item.humidity}%',
+        wind: '${item.windKmh.toStringAsFixed(0)} km/h',
+        uv: item.uvIndex.toString(),
+        rain: '${item.rainChance}%',
       ),
     );
   }
 
-  void _onDayTap(Map<String, dynamic> day) {
+  void _onDayTap(DailyForecast day) {
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
@@ -88,12 +153,36 @@ class _WeatherScreenState extends State<WeatherScreen>
       isDismissible: true,
       enableDrag: true,
       useSafeArea: true,
-      builder: (_) => _DayDetailSheet(day: day),
+      builder: (_) => _DayDetailSheet(
+        title: day.dayName,
+        high: _fmtT(day.maxTempC),
+        low: _fmtT(day.minTempC),
+        icon: _conditionIcon(day.condition),
+        color: _conditionColor(day.condition),
+        humidity: '${day.humidity}%',
+        wind: '${day.windKmh.toStringAsFixed(0)} km/h',
+        rain: '${day.rainChance}%',
+        uv: day.uvIndex.toString(),
+        sunrise: day.sunrise,
+        sunset: day.sunset,
+      ),
     );
   }
 
   void _onAirQualityTap() {
+    if (_data == null) return;
     HapticFeedback.lightImpact();
+    final a = _data!.airQuality;
+    final Color aqiColor;
+    if (a.aqi <= 50) {
+      aqiColor = const Color(0xFF22C55E);
+    } else if (a.aqi <= 100) {
+      aqiColor = const Color(0xFFF59E0B);
+    } else if (a.aqi <= 150) {
+      aqiColor = const Color(0xFFF97316);
+    } else {
+      aqiColor = const Color(0xFFEF4444);
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -101,7 +190,16 @@ class _WeatherScreenState extends State<WeatherScreen>
       isDismissible: true,
       enableDrag: true,
       useSafeArea: true,
-      builder: (_) => const _AirQualitySheet(),
+      builder: (_) => _AirQualitySheet(
+        aqi: a.aqi,
+        level: a.level,
+        levelText: a.levelText,
+        color: aqiColor,
+        pm2_5: a.pm2_5,
+        pm10: a.pm10,
+        o3: a.o3,
+        no2: a.no2,
+      ),
     );
   }
 
@@ -109,39 +207,67 @@ class _WeatherScreenState extends State<WeatherScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
-      body: FadeTransition(
-        opacity: _fadeAnim,
-        child: SlideTransition(
-          position: _slideAnim,
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // ── App Bar ──
-              SliverToBoxAdapter(child: _buildHeader()),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error.isNotEmpty
+              ? _errorView()
+              : FadeTransition(
+                  opacity: _fadeAnim,
+                  child: SlideTransition(
+                    position: _slideAnim,
+                    child: CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        SliverToBoxAdapter(child: _buildHeader()),
+                        SliverToBoxAdapter(child: _buildMainCard()),
+                        SliverToBoxAdapter(child: const SizedBox(height: 22)),
+                        SliverToBoxAdapter(
+                            child: _buildSectionTitle("Today's Forecast")),
+                        SliverToBoxAdapter(child: const SizedBox(height: 10)),
+                        SliverToBoxAdapter(child: _buildHourlyRow()),
+                        SliverToBoxAdapter(child: const SizedBox(height: 22)),
+                        SliverToBoxAdapter(child: _buildDailyCard()),
+                        SliverToBoxAdapter(child: const SizedBox(height: 16)),
+                        SliverToBoxAdapter(child: _buildAirQuality()),
+                        SliverToBoxAdapter(child: const SizedBox(height: 28)),
+                      ],
+                    ),
+                  ),
+                ),
+    );
+  }
 
-              // ── Main Weather Card ──
-              SliverToBoxAdapter(child: _buildMainCard()),
-
-              SliverToBoxAdapter(child: const SizedBox(height: 22)),
-
-              // ── Today's Forecast ──
-              SliverToBoxAdapter(child: _buildSectionTitle("Today's Forecast")),
-              SliverToBoxAdapter(child: const SizedBox(height: 10)),
-              SliverToBoxAdapter(child: _buildHourlyRow()),
-
-              SliverToBoxAdapter(child: const SizedBox(height: 22)),
-
-              // ── 5-Day Forecast ──
-              SliverToBoxAdapter(child: _buildDailyCard()),
-
-              SliverToBoxAdapter(child: const SizedBox(height: 16)),
-
-              // ── Air Quality ──
-              SliverToBoxAdapter(child: _buildAirQuality()),
-
-              SliverToBoxAdapter(child: const SizedBox(height: 28)),
-            ],
-          ),
+  Widget _errorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off_rounded,
+                size: 52, color: Color(0xFF94A3B8)),
+            const SizedBox(height: 12),
+            Text(
+              'Could not load weather',
+              style: GoogleFonts.outfit(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B)),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _error,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                  fontSize: 13, color: const Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 18),
+            TextButton.icon(
+              onPressed: _loadWeather,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+            ),
+          ],
         ),
       ),
     );
@@ -149,6 +275,7 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   // ─────────────────────────────────────────────
   Widget _buildHeader() {
+    final loc = _data?.current.locationName ?? 'Gilgit, Pakistan';
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
@@ -192,7 +319,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                           size: 13, color: Color(0xFF3B82F6)),
                       const SizedBox(width: 3),
                       Text(
-                        'Gilgit, Pakistan',
+                        loc,
                         style: GoogleFonts.outfit(
                           fontSize: 13,
                           color: const Color(0xFF64748B),
@@ -204,21 +331,24 @@ class _WeatherScreenState extends State<WeatherScreen>
                 ],
               ),
             ),
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 2))
-                ],
+            GestureDetector(
+              onTap: _onRefreshTap,
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: Color(0x14000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2))
+                  ],
+                ),
+                child: const Icon(Icons.refresh_rounded,
+                    size: 20, color: Color(0xFF3B82F6)),
               ),
-              child: const Icon(Icons.refresh_rounded,
-                  size: 20, color: Color(0xFF3B82F6)),
             ),
           ],
         ),
@@ -228,6 +358,7 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   // ─────────────────────────────────────────────
   Widget _buildMainCard() {
+    final cur = _data!.current;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -314,7 +445,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '18',
+                                      cur.temperatureC.round().toString(),
                                       style: GoogleFonts.outfit(
                                         fontSize: 80,
                                         fontWeight: FontWeight.w700,
@@ -330,7 +461,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                                       ),
                                     ),
                                     Padding(
-                                      padding: EdgeInsets.only(top: 10),
+                                      padding: const EdgeInsets.only(top: 10),
                                       child: Text(
                                         '°C',
                                         style: GoogleFonts.outfit(
@@ -352,7 +483,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Partly Cloudy',
+                                  cur.conditionText,
                                   style: GoogleFonts.outfit(
                                     fontSize: 19,
                                     fontWeight: FontWeight.w600,
@@ -389,7 +520,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                           children: [
                             _weatherStatLight(
                               icon: Icons.water_drop_rounded,
-                              value: '37%',
+                              value: '${cur.humidity}%',
                               label: 'Humidity',
                             ),
                             Container(
@@ -399,7 +530,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                             ),
                             _weatherStatLight(
                               icon: Icons.air_rounded,
-                              value: '12 km/h',
+                              value: '${cur.windKmh.toStringAsFixed(0)} km/h',
                               label: 'Wind',
                             ),
                             Container(
@@ -409,7 +540,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                             ),
                             _weatherStatLight(
                               icon: Icons.gps_fixed_rounded,
-                              value: '1012 hPa',
+                              value: '${cur.pressureHpa} hPa',
                               label: 'Pressure',
                             ),
                           ],
@@ -463,43 +594,6 @@ class _WeatherScreenState extends State<WeatherScreen>
     );
   }
 
-  Widget _weatherStat({
-    required IconData icon,
-    required String value,
-    required String label,
-  }) {
-    return Expanded(
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 16, color: Colors.white.withValues(alpha: 0.92)),
-              const SizedBox(width: 6),
-              Text(
-                value,
-                style: GoogleFonts.outfit(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.outfit(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.white.withValues(alpha: 0.72),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ─────────────────────────────────────────────
   Widget _buildSectionTitle(String title) {
     return Padding(
@@ -517,20 +611,22 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   // ─────────────────────────────────────────────
   Widget _buildHourlyRow() {
+    final items = _data!.hourly;
     return SizedBox(
-      height: 92,
+      height: 100,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _hourly.length,
+        itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
-          final item = _hourly[i];
+          final item = items[i];
           final bool selected = i == _selectedHourIndex;
+          final color = _conditionColor(item.condition);
           return AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeInOut,
-            width: 66,
+            width: 68,
             decoration: BoxDecoration(
               color: selected
                   ? const Color(0xFF1B547A)
@@ -563,7 +659,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      item['time'],
+                      item.timeLabel,
                       style: GoogleFonts.outfit(
                         fontSize: 11,
                         color: selected
@@ -574,15 +670,13 @@ class _WeatherScreenState extends State<WeatherScreen>
                     ),
                     const SizedBox(height: 6),
                     Icon(
-                      item['icon'] as IconData,
-                      size: 22,
-                      color: selected
-                          ? Colors.white
-                          : (item['color'] as Color),
+                      _conditionIcon(item.condition, outlined: !selected),
+                      size: 24,
+                      color: selected ? Colors.white : color,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      item['temp'],
+                      _fmtT(item.tempC),
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -603,6 +697,7 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   // ─────────────────────────────────────────────
   Widget _buildDailyCard() {
+    final days = _data!.daily;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -616,9 +711,10 @@ class _WeatherScreenState extends State<WeatherScreen>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Column(
-          children: List.generate(_daily.length, (i) {
-            final item = _daily[i];
-            final isLast = i == _daily.length - 1;
+          children: List.generate(days.length, (i) {
+            final item = days[i];
+            final isLast = i == days.length - 1;
+            final color = _conditionColor(item.condition);
             return Material(
               color: Colors.transparent,
               child: InkWell(
@@ -636,7 +732,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                           Expanded(
                             flex: 3,
                             child: Text(
-                              item['day'],
+                              item.dayName,
                               style: GoogleFonts.outfit(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -646,13 +742,13 @@ class _WeatherScreenState extends State<WeatherScreen>
                           ),
                           const SizedBox(width: 8),
                           Icon(
-                            item['icon'] as IconData,
+                            _conditionIcon(item.condition, outlined: true),
                             size: 28,
-                            color: item['iconColor'] as Color,
+                            color: color,
                           ),
                           const Spacer(),
                           Text(
-                            item['high'],
+                            _fmtT(item.maxTempC),
                             style: GoogleFonts.outfit(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
@@ -661,7 +757,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            item['low'],
+                            _fmtT(item.minTempC),
                             style: GoogleFonts.outfit(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
@@ -692,6 +788,22 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   // ─────────────────────────────────────────────
   Widget _buildAirQuality() {
+    final a = _data!.airQuality;
+    final Color aqiColor;
+    final Color aqiBg;
+    if (a.aqi <= 50) {
+      aqiColor = const Color(0xFF16A34A);
+      aqiBg = const Color(0xFFF0FDF4);
+    } else if (a.aqi <= 100) {
+      aqiColor = const Color(0xFFD97706);
+      aqiBg = const Color(0xFFFFFBEB);
+    } else if (a.aqi <= 150) {
+      aqiColor = const Color(0xFFEA580C);
+      aqiBg = const Color(0xFFFFF7ED);
+    } else {
+      aqiColor = const Color(0xFFDC2626);
+      aqiBg = const Color(0xFFFEF2F2);
+    }
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -710,9 +822,8 @@ class _WeatherScreenState extends State<WeatherScreen>
           color: Colors.transparent,
           child: InkWell(
             onTap: _onAirQualityTap,
-            splashColor: const Color(0xFF22C55E).withValues(alpha: 0.08),
-            highlightColor:
-                const Color(0xFF22C55E).withValues(alpha: 0.04),
+            splashColor: aqiColor.withValues(alpha: 0.08),
+            highlightColor: aqiColor.withValues(alpha: 0.04),
             child: Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -722,12 +833,10 @@ class _WeatherScreenState extends State<WeatherScreen>
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color:
-                          const Color(0xFF22C55E).withValues(alpha: 0.12),
+                      color: aqiColor.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.eco_rounded,
-                        color: Color(0xFF22C55E), size: 22),
+                    child: Icon(Icons.eco_rounded, color: aqiColor, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -738,11 +847,11 @@ class _WeatherScreenState extends State<WeatherScreen>
                             style: GoogleFonts.outfit(
                                 fontSize: 12,
                                 color: const Color(0xFF64748B))),
-                        Text('Good',
+                        Text(a.level,
                             style: GoogleFonts.outfit(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF22C55E))),
+                                color: aqiColor)),
                       ],
                     ),
                   ),
@@ -750,14 +859,14 @@ class _WeatherScreenState extends State<WeatherScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
+                      color: aqiBg,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text('32 AQI',
+                    child: Text('${a.aqi} AQI',
                         style: GoogleFonts.outfit(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF16A34A))),
+                            color: aqiColor)),
                   ),
                   const SizedBox(width: 6),
                   const Icon(Icons.chevron_right_rounded,
@@ -780,12 +889,20 @@ class _HourDetailSheet extends StatelessWidget {
   final String temp;
   final IconData icon;
   final Color color;
+  final String humidity;
+  final String wind;
+  final String uv;
+  final String rain;
 
   const _HourDetailSheet({
     required this.time,
     required this.temp,
     required this.icon,
     required this.color,
+    required this.humidity,
+    required this.wind,
+    required this.uv,
+    required this.rain,
   });
 
   @override
@@ -836,9 +953,10 @@ class _HourDetailSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _infoTile2(Icons.water_drop_outlined, '38%', 'Humidity'),
-              _infoTile2(Icons.air_rounded, '11 km/h', 'Wind'),
-              _infoTile2(Icons.light_mode_rounded, '5', 'UV Index'),
+              _infoTile2(Icons.water_drop_outlined, humidity, 'Humidity'),
+              _infoTile2(Icons.air_rounded, wind, 'Wind'),
+              _infoTile2(Icons.light_mode_rounded, uv, 'UV Index'),
+              _infoTile2(Icons.umbrella_rounded, rain, 'Rain'),
             ],
           ),
           const SizedBox(height: 20),
@@ -877,8 +995,31 @@ class _HourDetailSheet extends StatelessWidget {
 // Day Detail Bottom Sheet
 // ═══════════════════════════════════════════════
 class _DayDetailSheet extends StatelessWidget {
-  final Map<String, dynamic> day;
-  const _DayDetailSheet({required this.day});
+  final String title;
+  final String high;
+  final String low;
+  final IconData icon;
+  final Color color;
+  final String humidity;
+  final String wind;
+  final String rain;
+  final String uv;
+  final String sunrise;
+  final String sunset;
+
+  const _DayDetailSheet({
+    required this.title,
+    required this.high,
+    required this.low,
+    required this.icon,
+    required this.color,
+    required this.humidity,
+    required this.wind,
+    required this.rain,
+    required this.uv,
+    required this.sunrise,
+    required this.sunset,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -903,14 +1044,13 @@ class _DayDetailSheet extends StatelessWidget {
             width: 84,
             height: 84,
             decoration: BoxDecoration(
-              color: (day['iconColor'] as Color).withValues(alpha: 0.14),
+              color: color.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
-            child: Icon(day['icon'] as IconData,
-                size: 48, color: day['iconColor'] as Color),
+            child: Icon(icon, size: 48, color: color),
           ),
           const SizedBox(height: 14),
-          Text(day['day'],
+          Text(title,
               style: GoogleFonts.outfit(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -924,7 +1064,7 @@ class _DayDetailSheet extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(day['high'],
+              Text(high,
                   style: GoogleFonts.outfit(
                       fontSize: 44,
                       fontWeight: FontWeight.w700,
@@ -932,7 +1072,7 @@ class _DayDetailSheet extends StatelessWidget {
               const SizedBox(width: 10),
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text('/  ${day['low']}',
+                child: Text('/  $low',
                     style: GoogleFonts.outfit(
                         fontSize: 22,
                         fontWeight: FontWeight.w500,
@@ -940,19 +1080,49 @@ class _DayDetailSheet extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _infoTile(Icons.water_drop_outlined, '42%', 'Humidity'),
-              _infoTile(Icons.air_rounded, '14 km/h', 'Wind'),
-              _infoTile(Icons.umbrella_rounded, '10%', 'Rain'),
-              _infoTile(Icons.light_mode_rounded, '6', 'UV'),
+              _miniInfo(Icons.wb_sunny_rounded, sunrise, 'Sunrise'),
+              _miniInfo(Icons.nights_stay_rounded, sunset, 'Sunset'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _infoTile(Icons.water_drop_outlined, humidity, 'Humidity'),
+              _infoTile(Icons.air_rounded, wind, 'Wind'),
+              _infoTile(Icons.umbrella_rounded, rain, 'Rain'),
+              _infoTile(Icons.light_mode_rounded, uv, 'UV'),
             ],
           ),
           const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  Widget _miniInfo(IconData icon, String val, String label) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFF64748B)),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(val,
+                style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B))),
+            Text(label,
+                style: GoogleFonts.outfit(
+                    fontSize: 11, color: const Color(0xFF94A3B8))),
+          ],
+        ),
+      ],
     );
   }
 
@@ -986,7 +1156,27 @@ class _DayDetailSheet extends StatelessWidget {
 // Air Quality Bottom Sheet
 // ═══════════════════════════════════════════════
 class _AirQualitySheet extends StatelessWidget {
-  const _AirQualitySheet();
+  final int aqi;
+  final String level;
+  final String levelText;
+  final Color color;
+  final int pm2_5;
+  final int pm10;
+  final int o3;
+  final int no2;
+
+  const _AirQualitySheet({
+    required this.aqi,
+    required this.level,
+    required this.levelText,
+    required this.color,
+    required this.pm2_5,
+    required this.pm10,
+    required this.o3,
+    required this.no2,
+  });
+
+  Color _lightBg() => color.withValues(alpha: 0.12);
 
   @override
   Widget build(BuildContext context) {
@@ -1010,12 +1200,11 @@ class _AirQualitySheet extends StatelessWidget {
           Container(
             width: 64,
             height: 64,
-            decoration: const BoxDecoration(
-              color: Color(0xFFDCFCE7),
+            decoration: BoxDecoration(
+              color: _lightBg(),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.eco_rounded,
-                color: Color(0xFF22C55E), size: 34),
+            child: Icon(Icons.eco_rounded, color: color, size: 34),
           ),
           const SizedBox(height: 12),
           Text('Air Quality Index',
@@ -1031,35 +1220,44 @@ class _AirQualitySheet extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0FDF4),
+              color: _lightBg(),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('32 AQI',
+                  Text('$aqi AQI',
                       style: GoogleFonts.outfit(
                           fontSize: 28,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF16A34A))),
-                  Text('Good',
+                          color: color)),
+                  Text(level,
                       style: GoogleFonts.outfit(
-                          fontSize: 14, color: const Color(0xFF22C55E))),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: color)),
                 ]),
-                const Icon(Icons.eco_rounded,
-                    size: 48, color: Color(0xFF22C55E)),
+                Icon(Icons.eco_rounded, size: 48, color: color),
               ],
             ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(levelText,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                    fontSize: 12, color: const Color(0xFF64748B))),
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _aqiTile('PM2.5', '12 µg/m³'),
-              _aqiTile('PM10',  '24 µg/m³'),
-              _aqiTile('O₃',    '38 ppb'),
-              _aqiTile('NO₂',   '8 ppb'),
+              _aqiTile('PM2.5', '${pm2_5} µg/m³'),
+              _aqiTile('PM10', '${pm10} µg/m³'),
+              _aqiTile('O₃', '${o3} ppb'),
+              _aqiTile('NO₂', '${no2} ppb'),
             ],
           ),
           const SizedBox(height: 20),

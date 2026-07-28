@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_images.dart';
 import '../../core/utils/helpers.dart';
+import '../../services/notification_service.dart';
 import '../alerts/alerts_screen.dart';
 import '../emergency/sos_screen.dart';
 import '../network/network_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../weather/weather_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
   final VoidCallback? onExploreTap;
 
@@ -17,6 +18,32 @@ class HomeScreen extends StatelessWidget {
     this.onNavigateTab,
     this.onExploreTap,
   });
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final NotificationService _notifService = NotificationService();
+  int _unreadCount = 0;
+  bool _notifLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    await _notifService.initialize();
+    final count = await _notifService.getUnreadCount();
+    if (mounted) {
+      setState(() {
+        _unreadCount = count;
+        _notifLoaded = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,27 +55,16 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── 1. Top Header Bar ──
               _buildTopHeader(context),
               const SizedBox(height: 18),
-
-              // ── 2. Weather Forecast Banner ──
               _buildWeatherCard(context),
               const SizedBox(height: 22),
-
-              // ── 3. Quick Access Section ──
               _buildQuickAccessSection(context),
               const SizedBox(height: 24),
-
-              // ── 4. Latest Alerts Section ──
               _buildLatestAlertsSection(context),
               const SizedBox(height: 24),
-
-              // ── 5. Network Status Section ──
               _buildNetworkStatusSection(context),
               const SizedBox(height: 24),
-
-              // ── 6. Emergency SOS Banner ──
               _buildEmergencyBanner(context),
               const SizedBox(height: 20),
             ],
@@ -58,11 +74,9 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── 1. Header Bar ──
   Widget _buildTopHeader(BuildContext context) {
     return Row(
       children: [
-        // GB Connect Logo
         Container(
           width: 44,
           height: 44,
@@ -91,8 +105,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-
-        // App Title & Subtitle
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,14 +139,13 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
-
-        // Notification Bell Icon with Badge
         Stack(
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              onPressed: () {
-                Helpers.push(context, const NotificationsScreen());
+              onPressed: () async {
+                await Helpers.push(context, const NotificationsScreen());
+                _loadUnreadCount();
               },
               icon: const Icon(
                 Icons.notifications_none_rounded,
@@ -142,27 +153,38 @@ class HomeScreen extends StatelessWidget {
                 size: 26,
               ),
             ),
-            Positioned(
-              right: 12,
-              top: 12,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEF4444),
-                  shape: BoxShape.circle,
+            if (_notifLoaded && _unreadCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFF8FAFC), width: 1.5),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _unreadCount > 9 ? '9+' : '$_unreadCount',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(width: 4),
-
-        // User Profile Avatar
         GestureDetector(
           onTap: () {
-            if (onNavigateTab != null) {
-              onNavigateTab!(4); // Profile tab index
+            if (widget.onNavigateTab != null) {
+              widget.onNavigateTab!(4);
             }
           },
           child: Container(
@@ -193,7 +215,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── 2. Weather Card Banner ──
   Widget _buildWeatherCard(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -203,9 +224,9 @@ class HomeScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF0EA5E9), // Sky Blue
+            Color(0xFF0EA5E9),
             Color(0xFF0284C7),
-            Color(0xFF1E3A8A), // Deep Navy Blue
+            Color(0xFF1E3A8A),
           ],
         ),
         boxShadow: [
@@ -218,7 +239,6 @@ class HomeScreen extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Background scenic mountain glow accent
           Positioned(
             right: -10,
             bottom: -10,
@@ -228,17 +248,14 @@ class HomeScreen extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.15),
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Location Selector & View Full Forecast
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Location Selector Chip
                     GestureDetector(
                       onTap: () {
                         Helpers.showSnackBar(
@@ -268,12 +285,10 @@ class HomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-
-                    // View Full Forecast Button
                     GestureDetector(
                       onTap: () {
-                        if (onNavigateTab != null) {
-                          onNavigateTab!(1); // Weather tab index
+                        if (widget.onNavigateTab != null) {
+                          widget.onNavigateTab!(1);
                         } else {
                           Helpers.push(context, const WeatherScreen());
                         }
@@ -308,11 +323,8 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 18),
-
-                // Temp & Weather Info Row
                 Row(
                   children: [
-                    // Weather Icon (Sun behind cloud)
                     Container(
                       padding: const EdgeInsets.all(6),
                       child: Stack(
@@ -336,8 +348,6 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 14),
-
-                    // Temp
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -364,8 +374,6 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // Bottom Weather Metrics Bar
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -430,7 +438,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── 3. Quick Access Section ──
   Widget _buildQuickAccessSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,8 +455,8 @@ class HomeScreen extends StatelessWidget {
             ),
             GestureDetector(
               onTap: () {
-                if (onNavigateTab != null) {
-                  onNavigateTab!(1);
+                if (widget.onNavigateTab != null) {
+                  widget.onNavigateTab!(1);
                 }
               },
               child: Row(
@@ -474,12 +481,9 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-
-        // Quick Items Row matching mockup
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // 1. Weather
             _buildQuickItem(
               customWidget: const Icon(
                 Icons.wb_sunny_rounded,
@@ -489,11 +493,9 @@ class HomeScreen extends StatelessWidget {
               label: 'Weather',
               bgColor: const Color(0xFFF0F9FF),
               onTap: () {
-                if (onNavigateTab != null) onNavigateTab!(1);
+                if (widget.onNavigateTab != null) widget.onNavigateTab!(1);
               },
             ),
-
-            // 2. Alerts (no badge '3')
             _buildQuickItem(
               customWidget: const Icon(
                 Icons.gpp_maybe_rounded,
@@ -503,11 +505,9 @@ class HomeScreen extends StatelessWidget {
               label: 'Alerts',
               bgColor: const Color(0xFFFEF2F2),
               onTap: () {
-                if (onNavigateTab != null) onNavigateTab!(2);
+                if (widget.onNavigateTab != null) widget.onNavigateTab!(2);
               },
             ),
-
-            // 3. Network
             _buildQuickItem(
               customWidget: const Icon(
                 Icons.cell_tower_rounded,
@@ -517,11 +517,9 @@ class HomeScreen extends StatelessWidget {
               label: 'Network',
               bgColor: const Color(0xFFECFDF5),
               onTap: () {
-                if (onNavigateTab != null) onNavigateTab!(3);
+                if (widget.onNavigateTab != null) widget.onNavigateTab!(3);
               },
             ),
-
-            // 4. SOS
             _buildQuickItem(
               customWidget: Container(
                 width: 32,
@@ -547,8 +545,6 @@ class HomeScreen extends StatelessWidget {
                 Helpers.push(context, const SOSScreen());
               },
             ),
-
-            // 5. Profile
             _buildQuickItem(
               customWidget: const Icon(
                 Icons.person_rounded,
@@ -558,7 +554,7 @@ class HomeScreen extends StatelessWidget {
               label: 'Profile',
               bgColor: const Color(0xFFFAF5FF),
               onTap: () {
-                if (onNavigateTab != null) onNavigateTab!(4);
+                if (widget.onNavigateTab != null) widget.onNavigateTab!(4);
               },
             ),
           ],
@@ -647,7 +643,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── 4. Latest Alerts Section ──
   Widget _buildLatestAlertsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -665,8 +660,8 @@ class HomeScreen extends StatelessWidget {
             ),
             GestureDetector(
               onTap: () {
-                if (onNavigateTab != null) {
-                  onNavigateTab!(2);
+                if (widget.onNavigateTab != null) {
+                  widget.onNavigateTab!(2);
                 } else {
                   Helpers.push(context, const AlertsScreen());
                 }
@@ -693,8 +688,6 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-
-        // Alert Items List
         _buildAlertCard(
           context,
           icon: Icons.landscape_rounded,
@@ -741,8 +734,8 @@ class HomeScreen extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          if (onNavigateTab != null) {
-            onNavigateTab!(2); // Alerts tab index
+          if (widget.onNavigateTab != null) {
+            widget.onNavigateTab!(2);
           } else {
             Helpers.push(context, const AlertsScreen());
           }
@@ -765,7 +758,6 @@ class HomeScreen extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Left Icon
               Container(
                 width: 42,
                 height: 42,
@@ -776,8 +768,6 @@ class HomeScreen extends StatelessWidget {
                 child: Icon(icon, color: Colors.white, size: 22),
               ),
               const SizedBox(width: 14),
-
-              // Title & Subtitle
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -801,8 +791,6 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Time Ago
               Row(
                 children: [
                   Text(
@@ -828,7 +816,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── 5. Network Status Section ──
   Widget _buildNetworkStatusSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -846,8 +833,8 @@ class HomeScreen extends StatelessWidget {
             ),
             GestureDetector(
               onTap: () {
-                if (onNavigateTab != null) {
-                  onNavigateTab!(3);
+                if (widget.onNavigateTab != null) {
+                  widget.onNavigateTab!(3);
                 } else {
                   Helpers.push(context, const NetworkScreen());
                 }
@@ -874,8 +861,6 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-
-        // Single Card containing 4 carriers matching mockup
         Container(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
           decoration: BoxDecoration(
@@ -935,15 +920,12 @@ class HomeScreen extends StatelessWidget {
 
     return Column(
       children: [
-        // Carrier Image Logo (Clean transparent logo)
         SizedBox(
           width: 44,
           height: 34,
           child: Center(child: logoWidget),
         ),
         const SizedBox(height: 10),
-
-        // Signal Bars
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -962,8 +944,6 @@ class HomeScreen extends StatelessWidget {
           }),
         ),
         const SizedBox(height: 6),
-
-        // Status Text
         Text(
           statusText,
           style: GoogleFonts.outfit(
@@ -976,7 +956,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── 6. Emergency SOS Banner ──
   Widget _buildEmergencyBanner(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -987,7 +966,7 @@ class HomeScreen extends StatelessWidget {
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [
-            Color(0xFFEF4444), // Vibrant Red
+            Color(0xFFEF4444),
             Color(0xFFDC2626),
           ],
         ),
@@ -1001,7 +980,6 @@ class HomeScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // White Circle Phone SOS Icon
           Container(
             width: 48,
             height: 48,
@@ -1021,8 +999,6 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
-
-          // Text Content
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1048,8 +1024,6 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-
-          // Send SOS Button
           GestureDetector(
             onTap: () {
               Helpers.push(context, const SOSScreen());
