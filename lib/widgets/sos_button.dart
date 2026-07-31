@@ -20,7 +20,6 @@ class SOSButton extends StatefulWidget {
 class _SOSButtonState extends State<SOSButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseCtrl;
-  late Animation<double> _scaleAnim;
   late Animation<double> _pulseAnim;
   bool _isPressed = false;
 
@@ -29,12 +28,9 @@ class _SOSButtonState extends State<SOSButton>
     super.initState();
     _pulseCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1700),
     )..repeat(reverse: false);
-    _scaleAnim = Tween<double>(begin: 0.96, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.35).animate(
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
     );
   }
@@ -47,12 +43,12 @@ class _SOSButtonState extends State<SOSButton>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size.shortestSide * 0.55;
-    final diameter = size < 210 ? size : 210;
+    final size = MediaQuery.of(context).size.shortestSide * 0.42;
+    final diameter = size.clamp(150.0, 176.0);
 
     return SizedBox(
-      width: diameter,
-      height: diameter,
+      width: diameter + 18,
+      height: diameter + 18,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
@@ -62,20 +58,20 @@ class _SOSButtonState extends State<SOSButton>
               animation: _pulseAnim,
               builder: (_, child) {
                 return Opacity(
-                  opacity: (1 - _pulseAnim.value).clamp(0.0, 0.45),
+                  opacity: (1.12 - _pulseAnim.value).clamp(0.0, 0.22),
                   child: Transform.scale(
                     scale: _pulseAnim.value,
                     child: Container(
-                      width: diameter,
-                      height: diameter,
+                      width: diameter + 8,
+                      height: diameter + 8,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFFEF4444),
+                        color: const Color(0xFFFF6B6B),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFEF4444).withValues(alpha: 0.5),
-                            blurRadius: 40,
-                            spreadRadius: 8,
+                            color: const Color(0xFFFF7B7B).withValues(alpha: 0.32),
+                            blurRadius: 22,
+                            spreadRadius: 10,
                           ),
                         ],
                       ),
@@ -100,11 +96,7 @@ class _SOSButtonState extends State<SOSButton>
             onTap: widget.isLoading || widget.isDisabled ? null : widget.onPressed,
             child: AnimatedScale(
               duration: const Duration(milliseconds: 120),
-              scale: widget.isLoading
-                  ? 0.98
-                  : _isPressed
-                      ? 0.90
-                      : (_scaleAnim.value),
+              scale: widget.isLoading ? 0.98 : (_isPressed ? 0.94 : 1),
               curve: Curves.easeInOut,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
@@ -113,39 +105,30 @@ class _SOSButtonState extends State<SOSButton>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                     colors: [
                       widget.isDisabled
-                          ? const Color(0xFF9CA3AF)
-                          : const Color(0xFFFF6B6B),
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFFFF6767),
                       widget.isDisabled
-                          ? const Color(0xFF6B7280)
-                          : const Color(0xFFDC2626),
-                      widget.isDisabled
-                          ? const Color(0xFF4B5563)
-                          : const Color(0xFFB91C1C),
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFFFF2F2F),
                     ],
                   ),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.45),
-                    width: 4,
+                    color: const Color(0xFFFCE7E7),
+                    width: 5,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: (widget.isDisabled
-                              ? const Color(0xFF6B7280)
-                              : const Color(0xFFDC2626))
-                          .withValues(alpha: 0.5),
-                      blurRadius: 28,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 10),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 18,
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFFFF7B7B))
+                          .withValues(alpha: 0.36),
+                      blurRadius: 20,
+                      spreadRadius: 4,
                       offset: const Offset(0, 6),
-                      inset: true,
                     ),
                   ],
                 ),
@@ -153,17 +136,17 @@ class _SOSButtonState extends State<SOSButton>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.12),
-                      width: 1.5,
+                      color: Colors.white.withValues(alpha: 0.75),
+                      width: 2,
                     ),
                   ),
                   child: widget.isLoading
                       ? const Center(
                           child: SizedBox(
-                            width: 46,
-                            height: 46,
+                            width: 38,
+                            height: 38,
                             child: CircularProgressIndicator(
-                              strokeWidth: 3.5,
+                              strokeWidth: 3,
                               color: Colors.white,
                               backgroundColor: Colors.white24,
                             ),
@@ -173,32 +156,19 @@ class _SOSButtonState extends State<SOSButton>
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
-                                Icons.sos_rounded,
-                                size: 46,
-                                color: Colors.white,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 6,
-                                    color: Color(0x66000000),
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
                               Text(
                                 'SOS',
                                 style: GoogleFonts.outfit(
-                                  fontSize: 38,
+                                  fontSize: 34,
                                   fontWeight: FontWeight.w900,
                                   color: Colors.white,
-                                  letterSpacing: 3,
+                                  letterSpacing: 1,
                                   height: 1,
                                   shadows: const [
                                     Shadow(
-                                      blurRadius: 8,
-                                      color: Color(0x55000000),
-                                      offset: Offset(0, 2),
+                                      blurRadius: 4,
+                                      color: Color(0x33000000),
+                                      offset: Offset(0, 1),
                                     ),
                                   ],
                                 ),
