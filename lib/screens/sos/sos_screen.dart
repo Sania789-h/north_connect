@@ -161,8 +161,6 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   }
 
   String get _locationTitle {
-    if (_loadingLocation) return 'Getting location...';
-    if (_position == null) return 'Location unavailable';
     return 'Current Location';
   }
 
@@ -170,7 +168,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
     if (_position == null) {
       return _locationError ?? 'Enable permission to fetch your location';
     }
-    return 'Live GPS Coordinates';
+    return 'Gilgit, Pakistan';
   }
 
   String get _latitudeText {
@@ -186,20 +184,12 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F8F8),
+        backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: Text(
-          'Emergency SOS',
-          style: GoogleFonts.outfit(
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF1F2937),
-          ),
-        ),
         leading: IconButton(
           onPressed: () => Helpers.pop(context),
           icon: const Icon(
@@ -217,10 +207,11 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               child: Column(
                 children: [
+                  const SizedBox(height: 8),
                   Text(
                     'Emergency SOS',
                     style: GoogleFonts.outfit(
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF1F2937),
                     ),
@@ -246,7 +237,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                   Text(
                     'Tap to Send SOS',
                     style: GoogleFonts.outfit(
-                      fontSize: 17,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF5B6472),
                     ),
@@ -321,7 +312,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
             ),
             const SizedBox(height: 10),
             _locationRow(
-              icon: Icons.whatshot_outlined,
+              icon: Icons.water_drop_outlined,
               label: 'Longitude: $_longitudeText',
             ),
           ],
