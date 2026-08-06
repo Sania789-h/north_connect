@@ -125,87 +125,125 @@ class WeatherService {
   }
 
   static WeatherData _mockGilgitWeather() {
-    final now = DateTime.now();
-    final hour24 = now.hour;
-
-    final hours = <HourlyForecast>[];
-    for (int i = 0; i < 12; i++) {
-      final h = (hour24 + i) % 24;
-      final isDay = h >= 6 && h <= 18;
-      final double baseTemp = isDay ? 19 : 11;
-      final variance = (h - 13).abs() * -0.4;
-      final temp = baseTemp + variance;
-
-      WeatherCondition cond;
-      if (i == 0) {
-        cond = WeatherCondition.partlyCloudy;
-      } else if (i == 2 || i == 3) {
-        cond = WeatherCondition.cloudy;
-      } else if (i == 5 || i == 6) {
-        cond = WeatherCondition.rainy;
-      } else if (!isDay) {
-        cond = WeatherCondition.cloudy;
-      } else if (i < 2) {
-        cond = WeatherCondition.sunny;
-      } else {
-        cond = WeatherCondition.partlyCloudy;
-      }
-
-      final label = i == 0
-          ? 'Now'
-          : '${(h % 12 == 0 ? 12 : h % 12)} ${h < 12 ? 'AM' : 'PM'}';
-
-      hours.add(HourlyForecast(
-        timeLabel: label,
-        tempC: double.parse(temp.toStringAsFixed(1)),
-        condition: cond,
-        humidity: 35 + (i * 3) % 30,
-        windKmh: 8 + (i * 1.5) % 14,
-        uvIndex: isDay ? (12 - (h - 13).abs()).clamp(0, 10) : 0,
-        rainChance: (cond == WeatherCondition.rainy)
-            ? 75
-            : (cond == WeatherCondition.cloudy ? 28 : 8),
-      ));
-    }
-
-    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final todayIdx = (now.weekday - 1) % 7;
-
-    const dailyConditions = [
-      WeatherCondition.sunny,
-      WeatherCondition.partlyCloudy,
-      WeatherCondition.cloudy,
-      WeatherCondition.rainy,
-      WeatherCondition.windy,
-      WeatherCondition.partlyCloudy,
-      WeatherCondition.foggy,
+    final hours = <HourlyForecast>[
+      const HourlyForecast(
+        timeLabel: 'Now',
+        tempC: 18.0,
+        condition: WeatherCondition.partlyCloudy,
+        humidity: 37,
+        windKmh: 12.0,
+        uvIndex: 4,
+        rainChance: 10,
+      ),
+      const HourlyForecast(
+        timeLabel: '11 AM',
+        tempC: 19.0,
+        condition: WeatherCondition.sunny,
+        humidity: 36,
+        windKmh: 12.0,
+        uvIndex: 5,
+        rainChance: 5,
+      ),
+      const HourlyForecast(
+        timeLabel: '12 PM',
+        tempC: 20.0,
+        condition: WeatherCondition.partlyCloudy,
+        humidity: 35,
+        windKmh: 13.0,
+        uvIndex: 6,
+        rainChance: 10,
+      ),
+      const HourlyForecast(
+        timeLabel: '1 PM',
+        tempC: 21.0,
+        condition: WeatherCondition.sunny,
+        humidity: 34,
+        windKmh: 14.0,
+        uvIndex: 7,
+        rainChance: 5,
+      ),
+      const HourlyForecast(
+        timeLabel: '2 PM',
+        tempC: 22.0,
+        condition: WeatherCondition.sunny,
+        humidity: 33,
+        windKmh: 13.0,
+        uvIndex: 6,
+        rainChance: 5,
+      ),
+      const HourlyForecast(
+        timeLabel: '3 PM',
+        tempC: 22.0,
+        condition: WeatherCondition.partlyCloudy,
+        humidity: 35,
+        windKmh: 12.0,
+        uvIndex: 5,
+        rainChance: 10,
+      ),
     ];
-    const dailyMax = [22.0, 20.5, 18.0, 15.0, 19.5, 21.0, 17.0];
-    const dailyMin = [9.0, 10.0, 8.0, 6.0, 7.5, 10.0, 5.0];
-    const dailyHum = [30, 38, 55, 78, 42, 34, 62];
-    const dailyWind = [6.0, 9.0, 12.0, 16.0, 22.0, 8.0, 4.0];
-    const dailyRain = [5, 18, 35, 72, 20, 12, 40];
-    const dailyUv = [8, 6, 4, 2, 5, 7, 3];
-    const sunrises = ['05:48', '05:49', '05:50', '05:51', '05:52', '05:53', '05:54'];
-    const sunsets = ['19:12', '19:11', '19:10', '19:09', '19:08', '19:07', '19:06'];
 
-    final days = <DailyForecast>[];
-    for (int i = 0; i < 7; i++) {
-      final idx = (todayIdx + i) % 7;
-      final label = i == 0 ? 'Today' : dayNames[idx];
-      days.add(DailyForecast(
-        dayName: label,
-        maxTempC: dailyMax[i],
-        minTempC: dailyMin[i],
-        condition: dailyConditions[i],
-        humidity: dailyHum[i],
-        windKmh: dailyWind[i],
-        rainChance: dailyRain[i],
-        uvIndex: dailyUv[i],
-        sunrise: sunrises[i],
-        sunset: sunsets[i],
-      ));
-    }
+    final days = <DailyForecast>[
+      const DailyForecast(
+        dayName: 'Thursday',
+        maxTempC: 23.0,
+        minTempC: 12.0,
+        condition: WeatherCondition.partlyCloudy,
+        humidity: 38,
+        windKmh: 11.0,
+        rainChance: 15,
+        uvIndex: 6,
+        sunrise: '05:48',
+        sunset: '19:12',
+      ),
+      const DailyForecast(
+        dayName: 'Friday',
+        maxTempC: 24.0,
+        minTempC: 13.0,
+        condition: WeatherCondition.partlyCloudy,
+        humidity: 36,
+        windKmh: 10.0,
+        rainChance: 10,
+        uvIndex: 7,
+        sunrise: '05:49',
+        sunset: '19:11',
+      ),
+      const DailyForecast(
+        dayName: 'Saturday',
+        maxTempC: 25.0,
+        minTempC: 14.0,
+        condition: WeatherCondition.partlyCloudy,
+        humidity: 34,
+        windKmh: 12.0,
+        rainChance: 5,
+        uvIndex: 7,
+        sunrise: '05:50',
+        sunset: '19:10',
+      ),
+      const DailyForecast(
+        dayName: 'Sunday',
+        maxTempC: 22.0,
+        minTempC: 11.0,
+        condition: WeatherCondition.sunny,
+        humidity: 32,
+        windKmh: 14.0,
+        rainChance: 0,
+        uvIndex: 8,
+        sunrise: '05:51',
+        sunset: '19:09',
+      ),
+      const DailyForecast(
+        dayName: 'Monday',
+        maxTempC: 21.0,
+        minTempC: 10.0,
+        condition: WeatherCondition.partlyCloudy,
+        humidity: 40,
+        windKmh: 13.0,
+        rainChance: 20,
+        uvIndex: 5,
+        sunrise: '05:52',
+        sunset: '19:08',
+      ),
+    ];
 
     return WeatherData(
       current: const CurrentWeather(
@@ -220,13 +258,13 @@ class WeatherService {
       hourly: hours,
       daily: days,
       airQuality: const AirQuality(
-        aqi: 42,
+        aqi: 32,
         level: 'Good',
         levelText: 'Air quality is satisfactory and poses little or no health risk. Enjoy outdoor activities safely.',
-        pm2_5: 18,
-        pm10: 34,
-        o3: 28,
-        no2: 14,
+        pm2_5: 14,
+        pm10: 28,
+        o3: 22,
+        no2: 10,
       ),
     );
   }

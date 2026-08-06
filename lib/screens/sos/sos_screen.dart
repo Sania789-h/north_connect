@@ -4,7 +4,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/helpers.dart';
 import '../../services/sos_service.dart';
-import '../../widgets/emergency_contact_card.dart';
 import '../../widgets/sos_button.dart';
 
 class SOSSenderScreen extends StatefulWidget {
@@ -22,27 +21,6 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   int? _callingIndex;
   String? _locationError;
   Position? _position;
-
-  static const List<Map<String, dynamic>> _contacts = [
-    {
-      'name': 'Rescue 1122',
-      'phone': '1122',
-      'icon': Icons.support_agent_rounded,
-      'color': Color(0xFF133B5C),
-    },
-    {
-      'name': 'Police',
-      'phone': '15',
-      'icon': Icons.record_voice_over_rounded,
-      'color': Color(0xFF0F5EAF),
-    },
-    {
-      'name': 'Edhi Ambulance',
-      'phone': '115',
-      'icon': Icons.local_hospital_rounded,
-      'color': Color(0xFFB45309),
-    },
-  ];
 
   @override
   void initState() {
@@ -151,8 +129,8 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
 
   Future<void> _callContact(int index) async {
     setState(() => _callingIndex = index);
-    final success =
-        await _sosService.launchPhoneCall(_contacts[index]['phone'] as String);
+    final phone = index == 0 ? '1122' : '15';
+    final success = await _sosService.launchPhoneCall(phone);
     if (!mounted) return;
     setState(() => _callingIndex = null);
     if (!success) {
@@ -184,72 +162,75 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          onPressed: () => Helpers.pop(context),
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Color(0xFF1F2937),
-            size: 20,
-          ),
-        ),
-      ),
+      backgroundColor: const Color(0xFFFAFBFD),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: Column(
+        child: Column(
+          children: [
+            // Top App Bar matching picture (Back arrow left)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+              child: Row(
                 children: [
-                  const SizedBox(height: 8),
-                  Text(
-                    'Emergency SOS',
-                    style: GoogleFonts.outfit(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1F2937),
+                  IconButton(
+                    onPressed: () => Helpers.pop(context),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Color(0xFF1E293B),
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Your location will be shared with\nemergency contacts.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      height: 1.45,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF6B7280),
-                    ),
-                  ),
-                  const SizedBox(height: 26),
-                  SOSButton(
-                    isLoading: _sendingSOS,
-                    isDisabled: _loadingLocation,
-                    onPressed: _handleSOS,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Tap to Send SOS',
-                    style: GoogleFonts.outfit(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF5B6472),
-                    ),
-                  ),
-                  const SizedBox(height: 26),
-                  _buildLocationCard(),
-                  const SizedBox(height: 16),
-                  _buildContactsCard(),
                 ],
               ),
             ),
-          ),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                child: Column(
+                  children: [
+                    Text(
+                      'Emergency SOS',
+                      style: GoogleFonts.outfit(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your location will be shared with\nemergency contacts.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        height: 1.4,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    SOSButton(
+                      isLoading: _sendingSOS,
+                      isDisabled: _loadingLocation,
+                      onPressed: _handleSOS,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Tap to Send SOS',
+                      style: GoogleFonts.outfit(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    _buildLocationCard(),
+                    const SizedBox(height: 16),
+                    _buildContactsCard(),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -258,15 +239,15 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   Widget _buildLocationCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 10,
+            color: Color(0x0A000000),
+            blurRadius: 12,
             offset: Offset(0, 3),
           ),
         ],
@@ -277,30 +258,30 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
           Text(
             _locationTitle,
             style: GoogleFonts.outfit(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF1F2937),
+              color: const Color(0xFF1E293B),
             ),
           ),
           const SizedBox(height: 6),
           Text(
             _locationSubtitle,
             style: GoogleFonts.outfit(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
               color: _position == null
                   ? const Color(0xFFDC2626)
-                  : const Color(0xFF6B7280),
+                  : const Color(0xFF64748B),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           if (_loadingLocation)
             const Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 8),
                 child: SizedBox(
-                  width: 24,
-                  height: 24,
+                  width: 22,
+                  height: 22,
                   child: CircularProgressIndicator(strokeWidth: 2.2),
                 ),
               ),
@@ -312,7 +293,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
             ),
             const SizedBox(height: 10),
             _locationRow(
-              icon: Icons.water_drop_outlined,
+              icon: Icons.explore_outlined,
               label: 'Longitude: $_longitudeText',
             ),
           ],
@@ -327,15 +308,15 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF6B7280)),
+        Icon(icon, size: 18, color: const Color(0xFF64748B)),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             label,
             style: GoogleFonts.outfit(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF4B5563),
+              color: const Color(0xFF475569),
             ),
           ),
         ),
@@ -346,15 +327,15 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   Widget _buildContactsCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 10,
+            color: Color(0x0A000000),
+            blurRadius: 12,
             offset: Offset(0, 3),
           ),
         ],
@@ -365,29 +346,111 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
           Text(
             'Emergency Contacts',
             style: GoogleFonts.outfit(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF1F2937),
+              color: const Color(0xFF1E293B),
             ),
           ),
-          const SizedBox(height: 10),
-          for (int i = 0; i < _contacts.length; i++) ...[
-            EmergencyContactCard(
-              icon: _contacts[i]['icon'] as IconData,
-              iconColor: _contacts[i]['color'] as Color,
-              name: _contacts[i]['name'] as String,
-              phoneNumber: _contacts[i]['phone'] as String,
-              isLoading: _callingIndex == i,
-              onCallTap: () => _callContact(i).then((_) => true),
+          const SizedBox(height: 16),
+          // Rescue 1122 Contact
+          _contactItem(
+            index: 0,
+            name: 'Rescue 1122',
+            subtext: '1122',
+            number: '1122',
+            icon: Icons.health_and_safety_rounded,
+            badgeColor: const Color(0xFF1B2A4A),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+          ),
+          // Police Contact
+          _contactItem(
+            index: 1,
+            name: 'Police',
+            subtext: null,
+            number: '15',
+            icon: Icons.local_police_rounded,
+            badgeColor: const Color(0xFF0F5EAF),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _contactItem({
+    required int index,
+    required String name,
+    required String? subtext,
+    required String number,
+    required IconData icon,
+    required Color badgeColor,
+  }) {
+    final isCalling = _callingIndex == index;
+    return InkWell(
+      onTap: isCalling ? null : () => _callContact(index),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: badgeColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 20),
             ),
-            if (i != _contacts.length - 1)
-              const Divider(
-                height: 16,
-                thickness: 1,
-                color: Color(0xFFF0F0F0),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                  if (subtext != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtext,
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (isCalling)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFF0F5EAF),
+                ),
+              )
+            else
+              Text(
+                number,
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF475569),
+                ),
               ),
           ],
-        ],
+        ),
       ),
     );
   }

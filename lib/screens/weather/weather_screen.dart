@@ -18,7 +18,6 @@ class _WeatherScreenState extends State<WeatherScreen>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
-  int _selectedHourIndex = 0;
   bool _loading = true;
   String _error = '';
   WeatherData? _data;
@@ -86,8 +85,6 @@ class _WeatherScreenState extends State<WeatherScreen>
         return Icons.cloud_rounded;
       case WeatherCondition.windy:
         return Icons.air_rounded;
-      default:
-        return Icons.wb_sunny_rounded;
     }
   }
 
@@ -122,7 +119,6 @@ class _WeatherScreenState extends State<WeatherScreen>
   void _onHourTap(int index) {
     if (_data == null) return;
     HapticFeedback.selectionClick();
-    setState(() => _selectedHourIndex = index);
     final item = _data!.hourly[index];
     showModalBottomSheet(
       context: context,
@@ -206,7 +202,7 @@ class _WeatherScreenState extends State<WeatherScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
@@ -219,17 +215,18 @@ class _WeatherScreenState extends State<WeatherScreen>
                       physics: const BouncingScrollPhysics(),
                       slivers: [
                         SliverToBoxAdapter(child: _buildHeader()),
+                        const SliverToBoxAdapter(child: SizedBox(height: 12)),
                         SliverToBoxAdapter(child: _buildMainCard()),
-                        SliverToBoxAdapter(child: const SizedBox(height: 22)),
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
                         SliverToBoxAdapter(
                             child: _buildSectionTitle("Today's Forecast")),
-                        SliverToBoxAdapter(child: const SizedBox(height: 10)),
+                        const SliverToBoxAdapter(child: SizedBox(height: 14)),
                         SliverToBoxAdapter(child: _buildHourlyRow()),
-                        SliverToBoxAdapter(child: const SizedBox(height: 22)),
+                        const SliverToBoxAdapter(child: SizedBox(height: 20)),
                         SliverToBoxAdapter(child: _buildDailyCard()),
-                        SliverToBoxAdapter(child: const SizedBox(height: 16)),
+                        const SliverToBoxAdapter(child: SizedBox(height: 20)),
                         SliverToBoxAdapter(child: _buildAirQuality()),
-                        SliverToBoxAdapter(child: const SizedBox(height: 28)),
+                        const SliverToBoxAdapter(child: SizedBox(height: 32)),
                       ],
                     ),
                   ),
@@ -274,59 +271,51 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   // ─────────────────────────────────────────────
+  // Header matching picture: Back icon on left, title & location centered
+  // ─────────────────────────────────────────────
   Widget _buildHeader() {
     final loc = _data?.current.locationName ?? 'Gilgit, Pakistan';
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
         child: Row(
           children: [
             GestureDetector(
               onTap: () => Navigator.maybePop(context),
               child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Color(0x14000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2))
-                  ],
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
                 ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 18, color: Color(0xFF1E293B)),
+                child: const Icon(
+                  Icons.arrow_back_rounded,
+                  size: 24,
+                  color: Color(0xFF1E293B),
+                ),
               ),
             ),
-            const SizedBox(width: 12),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'Weather',
                     style: GoogleFonts.outfit(
-                      fontSize: 21,
+                      fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF1E293B),
+                      height: 1.1,
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.location_on_rounded,
-                          size: 13, color: Color(0xFF3B82F6)),
-                      const SizedBox(width: 3),
-                      Text(
-                        loc,
-                        style: GoogleFonts.outfit(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 2),
+                  Text(
+                    loc,
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -334,20 +323,14 @@ class _WeatherScreenState extends State<WeatherScreen>
             GestureDetector(
               onTap: _onRefreshTap,
               child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Color(0x14000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2))
-                  ],
+                width: 40,
+                height: 40,
+                color: Colors.transparent,
+                child: const Icon(
+                  Icons.refresh_rounded,
+                  size: 22,
+                  color: Color(0xFF64748B),
                 ),
-                child: const Icon(Icons.refresh_rounded,
-                    size: 20, color: Color(0xFF3B82F6)),
               ),
             ),
           ],
@@ -357,189 +340,177 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   // ─────────────────────────────────────────────
+  // Main Weather Card (Mountain BG + Temp + Stats overlay bar)
+  // ─────────────────────────────────────────────
   Widget _buildMainCard() {
     final cur = _data!.current;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         width: double.infinity,
+        height: 260,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x401B547A),
-              blurRadius: 24,
-              offset: Offset(0, 8),
+              color: Color(0x20000000),
+              blurRadius: 16,
+              offset: Offset(0, 6),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           child: Stack(
             children: [
-              SizedBox(
-                width: double.infinity,
-                height: 290,
+              Positioned.fill(
                 child: Image.asset(
                   AppImages.weatherImage,
-                  width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    color: const Color(0xFF1B547A),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.black.withValues(alpha: 0.15),
+                        Colors.black.withValues(alpha: 0.35),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
                 ),
               ),
               Positioned.fill(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: const [
-                              Padding(
-                                padding: EdgeInsets.only(top: 18, left: 4),
-                                child: Icon(
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: const [
+                                Icon(
                                   Icons.cloud_rounded,
                                   color: Colors.white,
-                                  size: 64,
+                                  size: 68,
                                   shadows: [
                                     Shadow(
-                                      color: Color(0x77000000),
-                                      blurRadius: 14,
+                                      color: Color(0x44000000),
+                                      blurRadius: 10,
                                       offset: Offset(0, 3),
                                     ),
                                   ],
                                 ),
-                              ),
-                              Positioned(
-                                top: 2,
-                                left: 20,
-                                child: Icon(
-                                  Icons.wb_sunny_rounded,
-                                  color: Color(0xFFFFC83D),
-                                  size: 44,
-                                  shadows: [
-                                    Shadow(
-                                      color: Color(0x66000000),
-                                      blurRadius: 10,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      cur.temperatureC.round().toString(),
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 80,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                        height: 0.95,
-                                        shadows: const [
-                                          Shadow(
-                                            color: Color(0x77000000),
-                                            blurRadius: 14,
-                                            offset: Offset(0, 3),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 10),
-                                      child: Text(
-                                        '°C',
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                          letterSpacing: 0.5,
-                                          shadows: const [
-                                            Shadow(
-                                              color: Color(0x77000000),
-                                              blurRadius: 14,
-                                              offset: Offset(0, 3),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  cur.conditionText,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                    shadows: const [
+                                Positioned(
+                                  top: -8,
+                                  left: -6,
+                                  child: Icon(
+                                    Icons.wb_sunny_rounded,
+                                    color: Color(0xFFFFC83D),
+                                    size: 40,
+                                    shadows: [
                                       Shadow(
-                                        color: Color(0x77000000),
-                                        blurRadius: 14,
-                                        offset: Offset(0, 3),
+                                        color: Color(0x44000000),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 2),
                                       ),
                                     ],
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFFFF).withValues(alpha: 0.94),
-                          borderRadius: BorderRadius.circular(22),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x1F000000),
-                              blurRadius: 18,
-                              offset: Offset(0, 6),
+                            const Spacer(),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '${cur.temperatureC.round()}°C',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    height: 1.0,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Color(0x66000000),
+                                        blurRadius: 12,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  cur.conditionText,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xEEFFFFFF),
+                                    shadows: const [
+                                      Shadow(
+                                        color: Color(0x66000000),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.32),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            _weatherStatLight(
-                              icon: Icons.water_drop_rounded,
+                            _weatherStatOverlay(
+                              icon: Icons.water_drop_outlined,
                               value: '${cur.humidity}%',
                               label: 'Humidity',
                             ),
                             Container(
                               width: 1,
-                              height: 34,
-                              color: const Color(0xFFE2E8F0),
+                              height: 30,
+                              color: Colors.white.withValues(alpha: 0.2),
                             ),
-                            _weatherStatLight(
+                            _weatherStatOverlay(
                               icon: Icons.air_rounded,
                               value: '${cur.windKmh.toStringAsFixed(0)} km/h',
                               label: 'Wind',
                             ),
                             Container(
                               width: 1,
-                              height: 34,
-                              color: const Color(0xFFE2E8F0),
+                              height: 30,
+                              color: Colors.white.withValues(alpha: 0.2),
                             ),
-                            _weatherStatLight(
-                              icon: Icons.gps_fixed_rounded,
+                            _weatherStatOverlay(
+                              icon: Icons.speed_rounded,
                               value: '${cur.pressureHpa} hPa',
                               label: 'Pressure',
                             ),
@@ -557,36 +528,37 @@ class _WeatherScreenState extends State<WeatherScreen>
     );
   }
 
-  Widget _weatherStatLight({
+  Widget _weatherStatOverlay({
     required IconData icon,
     required String value,
     required String label,
   }) {
     return Expanded(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: const Color(0xFF334155)),
-              const SizedBox(width: 6),
+              Icon(icon, size: 16, color: Colors.white),
+              const SizedBox(width: 5),
               Text(
                 value,
                 style: GoogleFonts.outfit(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
+                  color: Colors.white,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             label,
             style: GoogleFonts.outfit(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF64748B),
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xB3FFFFFF),
             ),
           ),
         ],
@@ -595,13 +567,15 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   // ─────────────────────────────────────────────
+  // Section Title
+  // ─────────────────────────────────────────────
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         title,
         style: GoogleFonts.outfit(
-          fontSize: 16,
+          fontSize: 17,
           fontWeight: FontWeight.w700,
           color: const Color(0xFF1E293B),
         ),
@@ -610,83 +584,63 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   // ─────────────────────────────────────────────
+  // Today's Forecast Horizontal Row
+  // ─────────────────────────────────────────────
   Widget _buildHourlyRow() {
     final items = _data!.hourly;
     return SizedBox(
-      height: 100,
+      height: 104,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
         itemBuilder: (context, i) {
           final item = items[i];
-          final bool selected = i == _selectedHourIndex;
           final color = _conditionColor(item.condition);
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            width: 68,
-            decoration: BoxDecoration(
-              color: selected
-                  ? const Color(0xFF1B547A)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: selected
-                      ? const Color(0x401B547A)
-                      : const Color(0x10000000),
-                  blurRadius: selected ? 10 : 6,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _onHourTap(i),
-                borderRadius: BorderRadius.circular(18),
-                splashColor: (selected
-                        ? Colors.white
-                        : const Color(0xFF1B547A))
-                    .withValues(alpha: 0.15),
-                highlightColor: (selected
-                        ? Colors.white
-                        : const Color(0xFF1B547A))
-                    .withValues(alpha: 0.08),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      item.timeLabel,
-                      style: GoogleFonts.outfit(
-                        fontSize: 11,
-                        color: selected
-                            ? const Color(0xCCFFFFFF)
-                            : const Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
+          return GestureDetector(
+            onTap: () => _onHourTap(i),
+            child: Container(
+              width: 62,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0A000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    item.timeLabel,
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 6),
-                    Icon(
-                      _conditionIcon(item.condition, outlined: !selected),
-                      size: 24,
-                      color: selected ? Colors.white : color,
+                  ),
+                  Icon(
+                    _conditionIcon(item.condition),
+                    size: 26,
+                    color: item.condition == WeatherCondition.sunny
+                        ? const Color(0xFFFFB020)
+                        : color,
+                  ),
+                  Text(
+                    _fmtT(item.tempC),
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E293B),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _fmtT(item.tempC),
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: selected
-                            ? Colors.white
-                            : const Color(0xFF1E293B),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
@@ -696,87 +650,77 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   // ─────────────────────────────────────────────
+  // Daily Forecast List
+  // ─────────────────────────────────────────────
   Widget _buildDailyCard() {
     final days = _data!.daily;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x0E000000), blurRadius: 10, offset: Offset(0, 3))
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
         child: Column(
           children: List.generate(days.length, (i) {
             final item = days[i];
-            final isLast = i == days.length - 1;
             final color = _conditionColor(item.condition);
             return Material(
               color: Colors.transparent,
               child: InkWell(
                 onTap: () => _onDayTap(item),
-                splashColor: const Color(0xFF1B547A).withValues(alpha: 0.08),
-                highlightColor:
-                    const Color(0xFF1B547A).withValues(alpha: 0.04),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Text(
-                              item.dayName,
-                              style: GoogleFonts.outfit(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1E293B),
-                              ),
-                            ),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 4,
+                        child: Text(
+                          item.dayName,
+                          style: GoogleFonts.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1E293B),
                           ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            _conditionIcon(item.condition, outlined: true),
-                            size: 28,
-                            color: color,
-                          ),
-                          const Spacer(),
-                          Text(
-                            _fmtT(item.maxTempC),
-                            style: GoogleFonts.outfit(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1E293B),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            _fmtT(item.minTempC),
-                            style: GoogleFonts.outfit(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.chevron_right_rounded,
-                              size: 18, color: Color(0xFFCBD5E1)),
-                        ],
+                        ),
                       ),
-                    ),
-                    if (!isLast)
-                      const Divider(
-                          height: 1,
-                          indent: 16,
-                          endIndent: 16,
-                          color: Color(0xFFF1F5F9)),
-                  ],
+                      Icon(
+                        _conditionIcon(item.condition),
+                        size: 24,
+                        color: item.condition == WeatherCondition.sunny
+                            ? const Color(0xFFFFB020)
+                            : color,
+                      ),
+                      const Spacer(flex: 3),
+                      Text(
+                        _fmtT(item.maxTempC),
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        _fmtT(item.minTempC),
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -787,90 +731,84 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   // ─────────────────────────────────────────────
+  // Air Quality Card matching reference image
+  // ─────────────────────────────────────────────
   Widget _buildAirQuality() {
     final a = _data!.airQuality;
-    final Color aqiColor;
-    final Color aqiBg;
-    if (a.aqi <= 50) {
-      aqiColor = const Color(0xFF16A34A);
-      aqiBg = const Color(0xFFF0FDF4);
-    } else if (a.aqi <= 100) {
-      aqiColor = const Color(0xFFD97706);
-      aqiBg = const Color(0xFFFFFBEB);
-    } else if (a.aqi <= 150) {
-      aqiColor = const Color(0xFFEA580C);
-      aqiBg = const Color(0xFFFFF7ED);
-    } else {
-      aqiColor = const Color(0xFFDC2626);
-      aqiBg = const Color(0xFFFEF2F2);
-    }
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x0E000000),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
               blurRadius: 10,
-              offset: Offset(0, 3))
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: _onAirQualityTap,
-            splashColor: aqiColor.withValues(alpha: 0.08),
-            highlightColor: aqiColor.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(20),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: aqiColor.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.eco_rounded, color: aqiColor, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Air Quality',
-                            style: GoogleFonts.outfit(
-                                fontSize: 12,
-                                color: const Color(0xFF64748B))),
-                        Text(a.level,
-                            style: GoogleFonts.outfit(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: aqiColor)),
-                      ],
+                  Text(
+                    'Air Quality',
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E293B),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: aqiBg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text('${a.aqi} AQI',
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF007AFF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.directions_run_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        a.level,
                         style: GoogleFonts.outfit(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: aqiColor)),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${a.aqi} AQI',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF94A3B8),
+                        size: 20,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: Color(0xFF94A3B8), size: 22),
                 ],
               ),
             ),
@@ -1254,10 +1192,10 @@ class _AirQualitySheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _aqiTile('PM2.5', '${pm2_5} µg/m³'),
-              _aqiTile('PM10', '${pm10} µg/m³'),
-              _aqiTile('O₃', '${o3} ppb'),
-              _aqiTile('NO₂', '${no2} ppb'),
+              _aqiTile('PM2.5', '$pm2_5 µg/m³'),
+              _aqiTile('PM10', '$pm10 µg/m³'),
+              _aqiTile('O₃', '$o3 ppb'),
+              _aqiTile('NO₂', '$no2 ppb'),
             ],
           ),
           const SizedBox(height: 20),

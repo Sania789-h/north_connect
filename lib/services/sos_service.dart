@@ -79,7 +79,7 @@ class SOSService {
 
   static Future<String> _tryPlacemarkLabel(Position p) async {
     try {
-      final list = await Geolocator.platform
+      final list = await Geolocator
           .getCurrentPosition(
               locationSettings:
                   const LocationSettings(accuracy: LocationAccuracy.lowest))

@@ -43,12 +43,11 @@ class _SOSButtonState extends State<SOSButton>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size.shortestSide * 0.42;
-    final diameter = size.clamp(150.0, 176.0);
+    final diameter = 160.0;
 
     return SizedBox(
-      width: diameter + 18,
-      height: diameter + 18,
+      width: diameter + 40,
+      height: diameter + 40,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
@@ -57,29 +56,29 @@ class _SOSButtonState extends State<SOSButton>
             AnimatedBuilder(
               animation: _pulseAnim,
               builder: (_, child) {
-                return Opacity(
-                  opacity: (1.12 - _pulseAnim.value).clamp(0.0, 0.22),
-                  child: Transform.scale(
-                    scale: _pulseAnim.value,
-                    child: Container(
-                      width: diameter + 8,
-                      height: diameter + 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFFF6B6B),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFF7B7B).withValues(alpha: 0.32),
-                            blurRadius: 22,
-                            spreadRadius: 10,
-                          ),
-                        ],
-                      ),
-                    ),
+                return Container(
+                  width: diameter + 28 * _pulseAnim.value,
+                  height: diameter + 28 * _pulseAnim.value,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFFF4D4D).withValues(alpha: 0.15 * (1.1 - _pulseAnim.value + 1.0)),
                   ),
                 );
               },
             ),
+          // Soft pink outer border ring matching picture
+          Container(
+            width: diameter + 18,
+            height: diameter + 18,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFFFEAEB),
+              border: Border.all(
+                color: const Color(0xFFFFCDD2),
+                width: 2,
+              ),
+            ),
+          ),
           GestureDetector(
             onTapDown: widget.isLoading || widget.isDisabled
                 ? null
@@ -96,10 +95,9 @@ class _SOSButtonState extends State<SOSButton>
             onTap: widget.isLoading || widget.isDisabled ? null : widget.onPressed,
             child: AnimatedScale(
               duration: const Duration(milliseconds: 120),
-              scale: widget.isLoading ? 0.98 : (_isPressed ? 0.94 : 1),
+              scale: widget.isLoading ? 0.96 : (_isPressed ? 0.93 : 1),
               curve: Curves.easeInOut,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
+              child: Container(
                 width: diameter,
                 height: diameter,
                 decoration: BoxDecoration(
@@ -110,73 +108,46 @@ class _SOSButtonState extends State<SOSButton>
                     colors: [
                       widget.isDisabled
                           ? const Color(0xFFCBD5E1)
-                          : const Color(0xFFFF6767),
+                          : const Color(0xFFFF4D4D),
                       widget.isDisabled
                           ? const Color(0xFF94A3B8)
-                          : const Color(0xFFFF2F2F),
+                          : const Color(0xFFE52E2E),
                     ],
-                  ),
-                  border: Border.all(
-                    color: const Color(0xFFFCE7E7),
-                    width: 5,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: (widget.isDisabled
                               ? const Color(0xFF94A3B8)
-                              : const Color(0xFFFF7B7B))
-                          .withValues(alpha: 0.36),
-                      blurRadius: 20,
-                      spreadRadius: 4,
+                              : const Color(0xFFEF4444))
+                          .withValues(alpha: 0.35),
+                      blurRadius: 18,
                       offset: const Offset(0, 6),
                     ),
                   ],
                 ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      width: 2,
-                    ),
-                  ),
-                  child: widget.isLoading
-                      ? const Center(
-                          child: SizedBox(
-                            width: 38,
-                            height: 38,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              color: Colors.white,
-                              backgroundColor: Colors.white24,
-                            ),
-                          ),
-                        )
-                      : Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'SOS',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  letterSpacing: 1,
-                                  height: 1,
-                                  shadows: const [
-                                    Shadow(
-                                      blurRadius: 4,
-                                      color: Color(0x33000000),
-                                      offset: Offset(0, 1),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                child: widget.isLoading
+                    ? const Center(
+                        child: SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: Colors.white,
                           ),
                         ),
-                ),
+                      )
+                    : Center(
+                        child: Text(
+                          'SOS',
+                          style: GoogleFonts.outfit(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 1,
+                            height: 1,
+                          ),
+                        ),
+                      ),
               ),
             ),
           ),
