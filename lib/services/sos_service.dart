@@ -96,7 +96,7 @@ class SOSService {
     return _tryPlacemarkLabel(p);
   }
 
-  // ── Phone Call ────────────────────────────────────────────────
+  // ── Phone Call ─────────────────────── ─────────────────────────
   Future<bool> launchPhoneCall(String phoneNumber) async {
     try {
       final Uri telUri = Uri(scheme: 'tel', path: phoneNumber);

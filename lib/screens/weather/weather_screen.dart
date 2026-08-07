@@ -339,6 +339,66 @@ class _WeatherScreenState extends State<WeatherScreen>
     );
   }
 
+  Widget _buildSunCloudGraphic() {
+    return SizedBox(
+      width: 86,
+      height: 72,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // 1. Sun (BEHIND at top-left)
+          Positioned(
+            top: 2,
+            left: 4,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const RadialGradient(
+                  colors: [
+                    Color(0xFFFFF59D),
+                    Color(0xFFFFB300),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFFB300).withValues(alpha: 0.5),
+                    blurRadius: 14,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.wb_sunny_rounded,
+                color: Color(0xFFFF8F00),
+                size: 28,
+              ),
+            ),
+          ),
+          // 2. Cloud (IN FRONT at bottom-right)
+          Positioned(
+            bottom: 2,
+            right: 0,
+            child: Icon(
+              Icons.cloud_rounded,
+              color: Colors.white,
+              size: 64,
+              shadows: const [
+                Shadow(
+                  color: Color(0x3B000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────────
   // Main Weather Card (Mountain BG + Temp + Stats overlay bar)
   // ─────────────────────────────────────────────
@@ -401,39 +461,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Stack(
-                              clipBehavior: Clip.none,
-                              children: const [
-                                Icon(
-                                  Icons.cloud_rounded,
-                                  color: Colors.white,
-                                  size: 68,
-                                  shadows: [
-                                    Shadow(
-                                      color: Color(0x44000000),
-                                      blurRadius: 10,
-                                      offset: Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                Positioned(
-                                  top: -8,
-                                  left: -6,
-                                  child: Icon(
-                                    Icons.wb_sunny_rounded,
-                                    color: Color(0xFFFFC83D),
-                                    size: 40,
-                                    shadows: [
-                                      Shadow(
-                                        color: Color(0x44000000),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                            _buildSunCloudGraphic(),
                             const Spacer(),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
