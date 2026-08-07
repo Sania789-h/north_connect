@@ -207,27 +207,34 @@ class _WeatherScreenState extends State<WeatherScreen>
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
               ? _errorView()
-              : FadeTransition(
-                  opacity: _fadeAnim,
-                  child: SlideTransition(
-                    position: _slideAnim,
-                    child: CustomScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      slivers: [
-                        SliverToBoxAdapter(child: _buildHeader()),
-                        const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                        SliverToBoxAdapter(child: _buildMainCard()),
-                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                        SliverToBoxAdapter(
-                            child: _buildSectionTitle("Today's Forecast")),
-                        const SliverToBoxAdapter(child: SizedBox(height: 14)),
-                        SliverToBoxAdapter(child: _buildHourlyRow()),
-                        const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                        SliverToBoxAdapter(child: _buildDailyCard()),
-                        const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                        SliverToBoxAdapter(child: _buildAirQuality()),
-                        const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                      ],
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    _onRefreshTap();
+                  },
+                  child: FadeTransition(
+                    opacity: _fadeAnim,
+                    child: SlideTransition(
+                      position: _slideAnim,
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        slivers: [
+                          SliverToBoxAdapter(child: _buildHeader()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                          SliverToBoxAdapter(child: _buildMainCard()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                          SliverToBoxAdapter(
+                              child: _buildSectionTitle("Today's Forecast")),
+                          const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                          SliverToBoxAdapter(child: _buildHourlyRow()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                          SliverToBoxAdapter(child: _buildDailyCard()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                          SliverToBoxAdapter(child: _buildAirQuality()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -276,6 +283,7 @@ class _WeatherScreenState extends State<WeatherScreen>
   Widget _buildHeader() {
     final loc = _data?.current.locationName ?? 'Gilgit, Pakistan';
     return SafeArea(
+      bottom: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
         child: Row(
@@ -285,9 +293,8 @@ class _WeatherScreenState extends State<WeatherScreen>
               child: Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                ),
+                alignment: Alignment.centerLeft,
+                color: Colors.transparent,
                 child: const Icon(
                   Icons.arrow_back_rounded,
                   size: 24,
@@ -320,19 +327,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                 ],
               ),
             ),
-            GestureDetector(
-              onTap: _onRefreshTap,
-              child: Container(
-                width: 40,
-                height: 40,
-                color: Colors.transparent,
-                child: const Icon(
-                  Icons.refresh_rounded,
-                  size: 22,
-                  color: Color(0xFF64748B),
-                ),
-              ),
-            ),
+            const SizedBox(width: 40),
           ],
         ),
       ),
