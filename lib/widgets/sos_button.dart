@@ -102,18 +102,6 @@ class _SOSButtonState extends State<SOSButton>
                 height: diameter,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      widget.isDisabled
-                          ? const Color(0xFFCBD5E1)
-                          : const Color(0xFFFF4D4D),
-                      widget.isDisabled
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFFE52E2E),
-                    ],
-                  ),
                   boxShadow: [
                     BoxShadow(
                       color: (widget.isDisabled
@@ -132,19 +120,23 @@ class _SOSButtonState extends State<SOSButton>
                           height: 36,
                           child: CircularProgressIndicator(
                             strokeWidth: 3,
-                            color: Colors.white,
+                            color: Color(0xFFEF4444),
                           ),
                         ),
                       )
-                    : Center(
-                        child: Text(
-                          'SOS',
-                          style: GoogleFonts.outfit(
-                            fontSize: 36,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 1,
-                            height: 1,
+                    : ClipOval(
+                        child: ColorFiltered(
+                          colorFilter: widget.isDisabled
+                              ? const ColorFilter.matrix(<double>[
+                                  0.2126, 0.7152, 0.0722, 0, 0,
+                                  0.2126, 0.7152, 0.0722, 0, 0,
+                                  0.2126, 0.7152, 0.0722, 0, 0,
+                                  0,      0,      0,      1, 0,
+                                ])
+                              : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
+                          child: Image.asset(
+                            'assests/images/sos_logo.png',
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),

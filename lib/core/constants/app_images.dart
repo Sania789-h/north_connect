@@ -13,4 +13,5 @@ class AppImages {
 
   static const noInternet = "assests/images/no_internet.png";
   static const weatherImage = "assests/images/weather_image.png";
+  static const homeImage = "assests/images/home_image.png";
 }

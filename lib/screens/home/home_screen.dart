@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_images.dart';
-import '../../core/utils/helpers.dart';
-import '../../services/notification_service.dart';
-import '../alerts/alerts_screen.dart';
-import '../emergency/sos_screen.dart';
-import '../network/network_screen.dart';
-import '../notifications/notifications_screen.dart';
-import '../weather/weather_screen.dart';
+import '../../services/weather_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -23,398 +18,648 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final NotificationService _notifService = NotificationService();
-  int _unreadCount = 0;
-  bool _notifLoaded = false;
+class _HomeScreenState extends State<HomeScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _fadeCtrl;
+  late AnimationController _slideCtrl;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
+
+  bool _loading = true;
+  String _error = '';
+  WeatherData? _data;
 
   @override
   void initState() {
     super.initState();
-    _loadUnreadCount();
+    _fadeCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _slideCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
+    _slideAnim = Tween<Offset>(
+            begin: const Offset(0, 0.08), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOut));
+
+    _loadWeather();
   }
 
-  Future<void> _loadUnreadCount() async {
-    await _notifService.initialize();
-    final count = await _notifService.getUnreadCount();
-    if (mounted) {
+  @override
+  void dispose() {
+    _fadeCtrl.dispose();
+    _slideCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadWeather() async {
+    try {
       setState(() {
-        _unreadCount = count;
-        _notifLoaded = true;
+        _loading = true;
+        _error = '';
+      });
+      final data = await WeatherService.current;
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _loading = false;
+      });
+      _fadeCtrl.forward();
+      _slideCtrl.forward();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
       });
     }
+  }
+
+  IconData _conditionIcon(WeatherCondition c, {bool outlined = false}) {
+    switch (c) {
+      case WeatherCondition.sunny:
+        return Icons.wb_sunny_rounded;
+      case WeatherCondition.partlyCloudy:
+        return outlined ? Icons.wb_cloudy_outlined : Icons.wb_cloudy_rounded;
+      case WeatherCondition.cloudy:
+        return outlined ? Icons.cloud_outlined : Icons.cloud_rounded;
+      case WeatherCondition.rainy:
+        return outlined ? Icons.grain_outlined : Icons.water_drop_rounded;
+      case WeatherCondition.stormy:
+        return Icons.thunderstorm_rounded;
+      case WeatherCondition.snowy:
+        return outlined ? Icons.ac_unit_outlined : Icons.ac_unit_rounded;
+      case WeatherCondition.foggy:
+        return Icons.cloud_rounded;
+      case WeatherCondition.windy:
+        return Icons.air_rounded;
+    }
+  }
+
+  Color _conditionColor(WeatherCondition c) {
+    switch (c) {
+      case WeatherCondition.sunny:
+        return const Color(0xFFFFB020);
+      case WeatherCondition.partlyCloudy:
+        return const Color(0xFF94A3B8);
+      case WeatherCondition.cloudy:
+        return const Color(0xFF64748B);
+      case WeatherCondition.rainy:
+        return const Color(0xFF3B82F6);
+      case WeatherCondition.stormy:
+        return const Color(0xFF7C3AED);
+      case WeatherCondition.snowy:
+        return const Color(0xFF06B6D4);
+      case WeatherCondition.foggy:
+        return const Color(0xFF9CA3AF);
+      case WeatherCondition.windy:
+        return const Color(0xFF14B8A6);
+    }
+  }
+
+  String _fmtT(double v) => '${v.round()}Â°';
+
+  void _onRefreshTap() {
+    HapticFeedback.lightImpact();
+    _loadWeather();
+  }
+
+  void _onHourTap(int index) {
+    if (_data == null) return;
+    HapticFeedback.selectionClick();
+    final item = _data!.hourly[index];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      useSafeArea: true,
+      builder: (_) => _HourDetailSheet(
+        time: item.timeLabel,
+        temp: _fmtT(item.tempC),
+        icon: _conditionIcon(item.condition),
+        color: _conditionColor(item.condition),
+        humidity: '${item.humidity}%',
+        wind: '${item.windKmh.toStringAsFixed(0)} km/h',
+        uv: item.uvIndex.toString(),
+        rain: '${item.rainChance}%',
+      ),
+    );
+  }
+
+  void _onDayTap(DailyForecast day) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      useSafeArea: true,
+      builder: (_) => _DayDetailSheet(
+        title: day.dayName,
+        high: _fmtT(day.maxTempC),
+        low: _fmtT(day.minTempC),
+        icon: _conditionIcon(day.condition),
+        color: _conditionColor(day.condition),
+        humidity: '${day.humidity}%',
+        wind: '${day.windKmh.toStringAsFixed(0)} km/h',
+        rain: '${day.rainChance}%',
+        uv: day.uvIndex.toString(),
+        sunrise: day.sunrise,
+        sunset: day.sunset,
+      ),
+    );
+  }
+
+  void _onAirQualityTap() {
+    if (_data == null) return;
+    HapticFeedback.lightImpact();
+    final a = _data!.airQuality;
+    final Color aqiColor;
+    if (a.aqi <= 50) {
+      aqiColor = const Color(0xFF22C55E);
+    } else if (a.aqi <= 100) {
+      aqiColor = const Color(0xFFF59E0B);
+    } else if (a.aqi <= 150) {
+      aqiColor = const Color(0xFFF97316);
+    } else {
+      aqiColor = const Color(0xFFEF4444);
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      useSafeArea: true,
+      builder: (_) => _AirQualitySheet(
+        aqi: a.aqi,
+        level: a.level,
+        levelText: a.levelText,
+        color: aqiColor,
+        pm2_5: a.pm2_5,
+        pm10: a.pm10,
+        o3: a.o3,
+        no2: a.no2,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTopHeader(context),
-              const SizedBox(height: 18),
-              _buildWeatherCard(context),
-              const SizedBox(height: 22),
-              _buildQuickAccessSection(context),
-              const SizedBox(height: 24),
-              _buildLatestAlertsSection(context),
-              const SizedBox(height: 24),
-              _buildNetworkStatusSection(context),
-              const SizedBox(height: 24),
-              _buildEmergencyBanner(context),
-              const SizedBox(height: 20),
-            ],
-          ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error.isNotEmpty
+              ? _errorView()
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    _onRefreshTap();
+                  },
+                  child: FadeTransition(
+                    opacity: _fadeAnim,
+                    child: SlideTransition(
+                      position: _slideAnim,
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        slivers: [
+                          SliverToBoxAdapter(child: _buildHeader()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                          SliverToBoxAdapter(child: _buildMainCard()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                          SliverToBoxAdapter(child: _buildQuickAccess()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                          SliverToBoxAdapter(child: _buildLatestAlerts()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                          SliverToBoxAdapter(child: _buildNetworkStatus()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                          SliverToBoxAdapter(child: _buildEmergencySOS()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+    );
+  }
+
+  Widget _errorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off_rounded,
+                size: 52, color: Color(0xFF94A3B8)),
+            const SizedBox(height: 12),
+            Text(
+              'Could not load weather',
+              style: GoogleFonts.outfit(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B)),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _error,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                  fontSize: 13, color: const Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 18),
+            TextButton.icon(
+              onPressed: _loadWeather,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTopHeader(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: Image.asset(
-              AppImages.logo,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const Icon(
-                Icons.landscape_rounded,
-                color: Color(0xFF067A46),
-                size: 26,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RichText(
-                text: TextSpan(
-                  style: GoogleFonts.outfit(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3,
-                  ),
-                  children: const [
-                    TextSpan(
-                      text: 'GB ',
-                      style: TextStyle(color: Color(0xFF0F2C59)),
-                    ),
-                    TextSpan(
-                      text: 'CONNECT',
-                      style: TextStyle(color: Color(0xFF067A46)),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                'Stay Connected, Stay Safe',
-                style: GoogleFonts.outfit(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Stack(
-          clipBehavior: Clip.none,
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Header matching picture: Logo + text on left, bell + profile on right
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Widget _buildHeader() {
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: Row(
           children: [
-            IconButton(
-              onPressed: () async {
-                await Helpers.push(context, const NotificationsScreen());
-                _loadUnreadCount();
-              },
-              icon: const Icon(
-                Icons.notifications_none_rounded,
-                color: Color(0xFF1E293B),
-                size: 26,
+            Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: Color(0xFF1E3A8A),
+                shape: BoxShape.circle,
               ),
-            ),
-            if (_notifLoaded && _unreadCount > 0)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFF8FAFC), width: 1.5),
-                  ),
-                  child: Center(
-                    child: Text(
-                      _unreadCount > 9 ? '9+' : '$_unreadCount',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(width: 4),
-        GestureDetector(
-          onTap: () {
-            if (widget.onNavigateTab != null) {
-              widget.onNavigateTab!(4);
-            }
-          },
-          child: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF0F2C59),
-              border: Border.all(color: Colors.white, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const ClipOval(
-              child: Icon(
-                Icons.person_rounded,
+              child: const Icon(
+                Icons.landscape_rounded,
                 color: Colors.white,
                 size: 24,
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'GB CONNECT',
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF047857),
+                      letterSpacing: 0.5,
+                      height: 1.1,
+                    ),
+                  ),
+                  Text(
+                    'Stay Connected, Stay Safe',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF1E293B)),
+            ),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFE2E8F0),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: const Icon(Icons.person, color: Color(0xFF94A3B8), size: 20),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildWeatherCard(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0EA5E9),
-            Color(0xFF0284C7),
-            Color(0xFF1E3A8A),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0284C7).withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+  Widget _buildSunCloudGraphic() {
+    return SizedBox(
+      width: 100,
+      height: 80,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // 1. Glowing Sun (BEHIND at top-left)
+          Positioned(
+            top: 0,
+            left: 8,
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const RadialGradient(
+                  colors: [
+                    Color(0xFFFFE082),
+                    Color(0xFFFF8F00),
+                  ],
+                  stops: [0.2, 1.0],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF8F00).withValues(alpha: 0.6),
+                    blurRadius: 20,
+                    spreadRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // 2. 3D Puffy Cloud (IN FRONT at bottom-right)
+          Positioned(
+            bottom: 5,
+            right: 0,
+            child: SizedBox(
+              width: 76,
+              height: 50,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Shadow for the cloud
+                  Positioned(
+                    bottom: -2,
+                    left: 4,
+                    right: 4,
+                    child: Container(
+                      height: 20,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x40000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Left small puff
+                  Positioned(
+                    bottom: 10,
+                    left: 6,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  // Right main puff
+                  Positioned(
+                    bottom: 12,
+                    right: 14,
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Color(0xFFF1F5F9)],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Bottom Base of Cloud
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 28,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.white, Color(0xFFE2E8F0)],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -10,
-            bottom: -10,
-            child: Icon(
-              Icons.terrain_rounded,
-              size: 170,
-              color: Colors.white.withValues(alpha: 0.15),
+    );
+  }
+
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Main Weather Card (Mountain BG + Temp + Stats overlay bar)
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Widget _buildMainCard() {
+    final cur = _data?.current;
+    final temp = cur?.temperatureC.round().toString() ?? '18';
+    final cond = cur?.conditionText ?? 'Partly Cloudy';
+    final hum = cur?.humidity.toString() ?? '37';
+    final wind = cur?.windKmh.toStringAsFixed(0) ?? '12';
+    final pres = cur?.pressureHpa.toString() ?? '1012';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        width: double.infinity,
+        height: 180,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x20000000),
+              blurRadius: 16,
+              offset: Offset(0, 6),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        Helpers.showSnackBar(
-                            context, "Location set to Gilgit, Pakistan");
-                      },
-                      child: Row(
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.asset(
+                  AppImages.homeImage,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.black.withValues(alpha: 0.1),
+                        Colors.black.withValues(alpha: 0.4),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(
-                            Icons.location_on_rounded,
-                            color: Colors.white,
-                            size: 16,
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Gilgit, Pakistan',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E3A8A).withValues(alpha: 0.8),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  'View Full Forecast',
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 14),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Transform.scale(
+                            scale: 0.8,
+                            alignment: Alignment.centerLeft,
+                            child: _buildSunCloudGraphic(),
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            'Gilgit, Pakistan',
-                            style: GoogleFonts.outfit(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        if (widget.onNavigateTab != null) {
-                          widget.onNavigateTab!(1);
-                        } else {
-                          Helpers.push(context, const WeatherScreen());
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              'View Full Forecast',
-                              style: GoogleFonts.outfit(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$tempÂ°',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  height: 1.0,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 3),
-                            const Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: Colors.white,
-                              size: 10,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: const [
-                          Icon(
-                            Icons.wb_sunny_rounded,
-                            color: Color(0xFFFFB703),
-                            size: 44,
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8, left: 4),
+                                child: Text(
+                                  'C',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Icon(
-                              Icons.cloud_rounded,
-                              color: Colors.white,
-                              size: 34,
-                            ),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 12),
+                              Text(
+                                cond,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '18°C',
-                          style: GoogleFonts.outfit(
-                            fontSize: 38,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            height: 1.0,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Partly Cloudy',
-                          style: GoogleFonts.outfit(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white.withValues(alpha: 0.9),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildMetricItem(Icons.water_drop_outlined, '37%', 'Humidity'),
-                      Container(
-                        width: 1,
-                        height: 24,
-                        color: Colors.white.withValues(alpha: 0.3),
+                      const Spacer(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _weatherStatMini(Icons.water_drop_outlined, '$hum%', 'Humidity'),
+                          Container(width: 1, height: 24, color: Colors.white.withValues(alpha: 0.3)),
+                          _weatherStatMini(Icons.air_rounded, '$wind km/h', 'Wind'),
+                          Container(width: 1, height: 24, color: Colors.white.withValues(alpha: 0.3)),
+                          _weatherStatMini(Icons.speed_rounded, '$pres hPa', 'Pressure'),
+                        ],
                       ),
-                      _buildMetricItem(Icons.air_rounded, '12 km/h', 'Wind'),
-                      Container(
-                        width: 1,
-                        height: 24,
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
-                      _buildMetricItem(Icons.speed_rounded, '1012 hPa', 'Pressure'),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildMetricItem(IconData icon, String value, String label) {
+  Widget _weatherStatMini(IconData icon, String value, String label) {
     return Row(
       children: [
         Icon(icon, color: Colors.white, size: 16),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               value,
@@ -429,7 +674,6 @@ class _HomeScreenState extends State<HomeScreen> {
               style: GoogleFonts.outfit(
                 color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 10,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -438,204 +682,37 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickAccessSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Quick Access',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F2C59),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                if (widget.onNavigateTab != null) {
-                  widget.onNavigateTab!(1);
-                }
-              },
-              child: Row(
-                children: [
-                  Text(
-                    'View All',
-                    style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF0284C7),
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 11,
-                    color: Color(0xFF0284C7),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildQuickItem(
-              customWidget: const Icon(
-                Icons.wb_sunny_rounded,
-                color: Color(0xFF38BDF8),
-                size: 28,
-              ),
-              label: 'Weather',
-              bgColor: const Color(0xFFF0F9FF),
-              onTap: () {
-                if (widget.onNavigateTab != null) widget.onNavigateTab!(1);
-              },
-            ),
-            _buildQuickItem(
-              customWidget: const Icon(
-                Icons.gpp_maybe_rounded,
-                color: Color(0xFFEF4444),
-                size: 28,
-              ),
-              label: 'Alerts',
-              bgColor: const Color(0xFFFEF2F2),
-              onTap: () {
-                if (widget.onNavigateTab != null) widget.onNavigateTab!(2);
-              },
-            ),
-            _buildQuickItem(
-              customWidget: const Icon(
-                Icons.cell_tower_rounded,
-                color: Color(0xFF10B981),
-                size: 28,
-              ),
-              label: 'Network',
-              bgColor: const Color(0xFFECFDF5),
-              onTap: () {
-                if (widget.onNavigateTab != null) widget.onNavigateTab!(3);
-              },
-            ),
-            _buildQuickItem(
-              customWidget: Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEF4444),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    'SOS',
-                    style: GoogleFonts.outfit(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              label: 'SOS',
-              bgColor: const Color(0xFFFEF2F2),
-              onTap: () {
-                Helpers.push(context, const SOSScreen());
-              },
-            ),
-            _buildQuickItem(
-              customWidget: const Icon(
-                Icons.person_rounded,
-                color: Color(0xFFA855F7),
-                size: 28,
-              ),
-              label: 'Profile',
-              bgColor: const Color(0xFFFAF5FF),
-              onTap: () {
-                if (widget.onNavigateTab != null) widget.onNavigateTab!(4);
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickItem({
-    required Widget customWidget,
-    required String label,
-    required Color bgColor,
-    String? badge,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
+  // ─────────────────────────────────────────────
+  // Section Header
+  // ─────────────────────────────────────────────
+  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: const Color(0xFFF1F5F9),
-                    width: 1,
-                  ),
-                ),
-                child: Center(
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: bgColor,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Center(child: customWidget),
-                  ),
-                ),
-              ),
-              if (badge != null)
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEF4444),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      badge,
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
           Text(
-            label,
+            title,
             style: GoogleFonts.outfit(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF334155),
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          GestureDetector(
+            onTap: onViewAll,
+            child: Row(
+              children: [
+                Text(
+                  'View All',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF0F766E),
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF0F766E), size: 16),
+              ],
             ),
           ),
         ],
@@ -643,301 +720,257 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildLatestAlertsSection(BuildContext context) {
+  // ─────────────────────────────────────────────
+  // Quick Access
+  // ─────────────────────────────────────────────
+  Widget _buildQuickAccess() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Latest Alerts',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F2C59),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                if (widget.onNavigateTab != null) {
-                  widget.onNavigateTab!(2);
-                } else {
-                  Helpers.push(context, const AlertsScreen());
-                }
-              },
-              child: Row(
-                children: [
-                  Text(
-                    'View All',
-                    style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF0284C7),
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 11,
-                    color: Color(0xFF0284C7),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        _buildAlertCard(
-          context,
-          icon: Icons.landscape_rounded,
-          iconBgColor: const Color(0xFFEF4444),
-          title: 'Landslide Warning',
-          subtitle: 'Hunza, Gilgit-Baltistan',
-          timeAgo: '2h ago',
-          timeColor: const Color(0xFFEF4444),
-        ),
-        const SizedBox(height: 10),
-        _buildAlertCard(
-          context,
-          icon: Icons.water_rounded,
-          iconBgColor: const Color(0xFF0284C7),
-          title: 'Flood Advisory',
-          subtitle: 'Ghizer, Gilgit-Baltistan',
-          timeAgo: '5h ago',
-          timeColor: const Color(0xFF0284C7),
-        ),
-        const SizedBox(height: 10),
-        _buildAlertCard(
-          context,
-          icon: Icons.alt_route_rounded,
-          iconBgColor: const Color(0xFFF59E0B),
-          title: 'Road Closed',
-          subtitle: 'Babusar Top, Naran Road',
-          timeAgo: '1d ago',
-          timeColor: const Color(0xFFF59E0B),
+        _buildSectionHeader('Quick Access'),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildQuickAccessItem(Icons.cloud_rounded, 'Weather', const Color(0xFF3B82F6)),
+              _buildQuickAccessItem(Icons.warning_rounded, 'Alerts', const Color(0xFFEF4444), badge: '3'),
+              _buildQuickAccessItem(Icons.cell_tower_rounded, 'Network', const Color(0xFF22C55E)),
+              _buildQuickAccessItem(Icons.sos_rounded, 'SOS', const Color(0xFFEF4444)),
+              _buildQuickAccessItem(Icons.person_rounded, 'Profile', const Color(0xFF8B5CF6)),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildAlertCard(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconBgColor,
-    required String title,
-    required String subtitle,
-    required String timeAgo,
-    required Color timeColor,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          if (widget.onNavigateTab != null) {
-            widget.onNavigateTab!(2);
-          } else {
-            Helpers.push(context, const AlertsScreen());
-          }
-        },
-        borderRadius: BorderRadius.circular(16),
-        splashColor: iconBgColor.withValues(alpha: 0.1),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-            border: Border.all(color: const Color(0xFFF1F5F9)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: iconBgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: Colors.white, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.outfit(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0F2C59),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.outfit(
-                        fontSize: 13,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    timeAgo,
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: timeColor,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 12,
-                    color: timeColor,
-                  ),
+  Widget _buildQuickAccessItem(IconData icon, String label, Color color, {String? badge}) {
+    return Column(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
                 ],
               ),
-            ],
+              child: Icon(icon, color: color, size: 28),
+            ),
+            if (badge != null)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEF4444),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    badge,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF475569),
           ),
         ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Latest Alerts
+  // ─────────────────────────────────────────────
+  Widget _buildLatestAlerts() {
+    return Column(
+      children: [
+        _buildSectionHeader('Latest Alerts'),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: Column(
+              children: [
+                _buildAlertItem(
+                  icon: Icons.landslide_rounded,
+                  iconColor: const Color(0xFFEF4444),
+                  title: 'Landslide Warning',
+                  location: 'Hunza, Gilgit-Baltistan',
+                  timeAgo: '2h ago',
+                ),
+                Divider(height: 1, color: Colors.grey.shade200, indent: 64),
+                _buildAlertItem(
+                  icon: Icons.flood_rounded,
+                  iconColor: const Color(0xFF3B82F6),
+                  title: 'Flood Advisory',
+                  location: 'Ghizer, Gilgit-Baltistan',
+                  timeAgo: '5h ago',
+                ),
+                Divider(height: 1, color: Colors.grey.shade200, indent: 64),
+                _buildAlertItem(
+                  icon: Icons.warning_amber_rounded,
+                  iconColor: const Color(0xFFF59E0B),
+                  title: 'Road Closed',
+                  location: 'Babusar Top, Naran Road',
+                  timeAgo: '1d ago',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAlertItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String location,
+    required String timeAgo,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                Text(
+                  location,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              Text(
+                timeAgo,
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1), size: 16),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildNetworkStatusSection(BuildContext context) {
+  // ─────────────────────────────────────────────
+  // Network Status
+  // ─────────────────────────────────────────────
+  Widget _buildNetworkStatus() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Network Status',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F2C59),
-              ),
+        _buildSectionHeader('Network Status'),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+              ],
             ),
-            GestureDetector(
-              onTap: () {
-                if (widget.onNavigateTab != null) {
-                  widget.onNavigateTab!(3);
-                } else {
-                  Helpers.push(context, const NetworkScreen());
-                }
-              },
-              child: Row(
-                children: [
-                  Text(
-                    'View All',
-                    style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF0284C7),
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 11,
-                    color: Color(0xFF0284C7),
-                  ),
-                ],
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNetworkItem('SCOM', Icons.language, const Color(0xFF22C55E), 4, const Color(0xFF2563EB)),
+                _buildNetworkItem('Jazz', Icons.language, const Color(0xFF22C55E), 4, const Color(0xFFDC2626)),
+                _buildNetworkItem('Zong 4G', Icons.language, const Color(0xFF22C55E), 4, const Color(0xFF16A34A)),
+                _buildNetworkItem('Telenor', Icons.language, const Color(0xFFF59E0B), 2, const Color(0xFF2563EB)),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
-            border: Border.all(color: const Color(0xFFF1F5F9)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildCarrierItem(
-                logoWidget: const ScomLogo(),
-                bars: 4,
-                statusText: 'Good',
-                isFair: false,
-              ),
-              _buildCarrierItem(
-                logoWidget: const JazzLogo(),
-                bars: 4,
-                statusText: 'Good',
-                isFair: false,
-              ),
-              _buildCarrierItem(
-                logoWidget: const ZongLogo(),
-                bars: 4,
-                statusText: 'Good',
-                isFair: false,
-              ),
-              _buildCarrierItem(
-                logoWidget: const TelenorLogo(),
-                bars: 2,
-                statusText: 'Fair',
-                isFair: true,
-              ),
-            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCarrierItem({
-    required Widget logoWidget,
-    required int bars,
-    required String statusText,
-    required bool isFair,
-  }) {
-    final statusColor =
-        isFair ? const Color(0xFFF59E0B) : const Color(0xFF2ECC71);
-
+  Widget _buildNetworkItem(String name, IconData logoIcon, Color statusColor, int bars, Color logoColor) {
     return Column(
       children: [
-        SizedBox(
-          width: 44,
-          height: 34,
-          child: Center(child: logoWidget),
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.grey.shade50,
+          ),
+          child: Icon(logoIcon, color: logoColor, size: 24),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: List.generate(4, (index) {
-            final active = index < bars;
-            final color = active ? statusColor : const Color(0xFFD1D5DB);
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 1.5),
-              width: 4,
-              height: (index + 1) * 3.5 + 4,
+              width: 3.5,
+              height: 6.0 + (index * 2.5),
               decoration: BoxDecoration(
-                color: color,
+                color: index < bars ? statusColor : Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(2),
               ),
             );
@@ -945,10 +978,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          statusText,
+          bars == 4 ? 'Good' : 'Fair',
           style: GoogleFonts.outfit(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
             color: statusColor,
           ),
         ),
@@ -956,112 +989,482 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEmergencyBanner(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            Color(0xFFEF4444),
-            Color(0xFFDC2626),
+  // ─────────────────────────────────────────────
+  // Emergency SOS
+  // ─────────────────────────────────────────────
+  Widget _buildEmergencySOS() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFEF4444).withValues(alpha: 0.35),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: const [
-                Icon(
-                  Icons.phone_in_talk_rounded,
-                  color: Color(0xFFDC2626),
-                  size: 26,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Emergency SOS',
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Tap to send your location to emergency contacts',
-                  style: GoogleFonts.outfit(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () {
-              Helpers.push(context, const SOSScreen());
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.call_rounded, color: Color(0xFFEF4444), size: 28),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Emergency SOS',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Tap to send your location to emergency contacts',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
                   ),
                 ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
                   Text(
                     'Send SOS',
                     style: GoogleFonts.outfit(
-                      color: const Color(0xFFDC2626),
                       fontSize: 13,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFEF4444),
                     ),
                   ),
-                  const SizedBox(width: 3),
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 11,
-                    color: Color(0xFFDC2626),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right_rounded, color: Color(0xFFEF4444), size: 16),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+  // ─────────────────────────────────────────────
+  // Section Header
+  // ─────────────────────────────────────────────
+  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          GestureDetector(
+            onTap: onViewAll,
+            child: Row(
+              children: [
+                Text(
+                  'View All',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF0F766E),
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF0F766E), size: 16),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Quick Access
+  // ─────────────────────────────────────────────
+  Widget _buildQuickAccess() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Quick Access'),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildQuickAccessItem(Icons.cloud_rounded, 'Weather', const Color(0xFF3B82F6)),
+              _buildQuickAccessItem(Icons.warning_rounded, 'Alerts', const Color(0xFFEF4444), badge: '3'),
+              _buildQuickAccessItem(Icons.cell_tower_rounded, 'Network', const Color(0xFF22C55E)),
+              _buildQuickAccessItem(Icons.sos_rounded, 'SOS', const Color(0xFFEF4444)),
+              _buildQuickAccessItem(Icons.person_rounded, 'Profile', const Color(0xFF8B5CF6)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickAccessItem(IconData icon, String label, Color color, {String? badge}) {
+    return Column(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+                ],
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            if (badge != null)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEF4444),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    badge,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF475569),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Latest Alerts
+  // ─────────────────────────────────────────────
+  Widget _buildLatestAlerts() {
+    return Column(
+      children: [
+        _buildSectionHeader('Latest Alerts'),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: Column(
+              children: [
+                _buildAlertItem(
+                  icon: Icons.landslide_rounded,
+                  iconColor: const Color(0xFFEF4444),
+                  title: 'Landslide Warning',
+                  location: 'Hunza, Gilgit-Baltistan',
+                  timeAgo: '2h ago',
+                ),
+                Divider(height: 1, color: Colors.grey.shade200, indent: 64),
+                _buildAlertItem(
+                  icon: Icons.flood_rounded,
+                  iconColor: const Color(0xFF3B82F6),
+                  title: 'Flood Advisory',
+                  location: 'Ghizer, Gilgit-Baltistan',
+                  timeAgo: '5h ago',
+                ),
+                Divider(height: 1, color: Colors.grey.shade200, indent: 64),
+                _buildAlertItem(
+                  icon: Icons.warning_amber_rounded,
+                  iconColor: const Color(0xFFF59E0B),
+                  title: 'Road Closed',
+                  location: 'Babusar Top, Naran Road',
+                  timeAgo: '1d ago',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAlertItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String location,
+    required String timeAgo,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                Text(
+                  location,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              Text(
+                timeAgo,
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1), size: 16),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Network Status
+  // ─────────────────────────────────────────────
+  Widget _buildNetworkStatus() {
+    return Column(
+      children: [
+        _buildSectionHeader('Network Status'),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNetworkItem('SCOM', Icons.language, const Color(0xFF22C55E), 4, const Color(0xFF2563EB)),
+                _buildNetworkItem('Jazz', Icons.language, const Color(0xFF22C55E), 4, const Color(0xFFDC2626)),
+                _buildNetworkItem('Zong 4G', Icons.language, const Color(0xFF22C55E), 4, const Color(0xFF16A34A)),
+                _buildNetworkItem('Telenor', Icons.language, const Color(0xFFF59E0B), 2, const Color(0xFF2563EB)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNetworkItem(String name, IconData logoIcon, Color statusColor, int bars, Color logoColor) {
+    return Column(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.grey.shade50,
+          ),
+          child: Icon(logoIcon, color: logoColor, size: 24),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: List.generate(4, (index) {
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              width: 3.5,
+              height: 6.0 + (index * 2.5),
+              decoration: BoxDecoration(
+                color: index < bars ? statusColor : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          bars == 4 ? 'Good' : 'Fair',
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: statusColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Emergency SOS
+  // ─────────────────────────────────────────────
+  Widget _buildEmergencySOS() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.call_rounded, color: Color(0xFFEF4444), size: 28),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Emergency SOS',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Tap to send your location to emergency contacts',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Send SOS',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFEF4444),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right_rounded, color: Color(0xFFEF4444), size: 16),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

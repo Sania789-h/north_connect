@@ -336,57 +336,116 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   Widget _buildSunCloudGraphic() {
     return SizedBox(
-      width: 86,
-      height: 72,
+      width: 100,
+      height: 80,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          // 1. Sun (BEHIND at top-left)
+          // 1. Glowing Sun (BEHIND at top-left)
           Positioned(
-            top: 2,
-            left: 4,
+            top: 0,
+            left: 8,
             child: Container(
-              width: 44,
-              height: 44,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const RadialGradient(
                   colors: [
-                    Color(0xFFFFF59D),
-                    Color(0xFFFFB300),
+                    Color(0xFFFFE082),
+                    Color(0xFFFF8F00),
                   ],
+                  stops: [0.2, 1.0],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFFB300).withValues(alpha: 0.5),
-                    blurRadius: 14,
-                    spreadRadius: 2,
+                    color: const Color(0xFFFF8F00).withValues(alpha: 0.6),
+                    blurRadius: 20,
+                    spreadRadius: 4,
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.wb_sunny_rounded,
-                color: Color(0xFFFF8F00),
-                size: 28,
-              ),
             ),
           ),
-          // 2. Cloud (IN FRONT at bottom-right)
+          // 2. 3D Puffy Cloud (IN FRONT at bottom-right)
           Positioned(
-            bottom: 2,
+            bottom: 5,
             right: 0,
-            child: Icon(
-              Icons.cloud_rounded,
-              color: Colors.white,
-              size: 64,
-              shadows: const [
-                Shadow(
-                  color: Color(0x3B000000),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ],
+            child: SizedBox(
+              width: 76,
+              height: 50,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Shadow for the cloud
+                  Positioned(
+                    bottom: -2,
+                    left: 4,
+                    right: 4,
+                    child: Container(
+                      height: 20,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x40000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Left small puff
+                  Positioned(
+                    bottom: 10,
+                    left: 6,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  // Right main puff
+                  Positioned(
+                    bottom: 12,
+                    right: 14,
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Color(0xFFF1F5F9)],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Bottom Base of Cloud
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 28,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.white, Color(0xFFE2E8F0)],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
