@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/alert_model.dart';
 import '../core/constants/colors.dart';
 
@@ -12,127 +13,179 @@ class AlertCard extends StatelessWidget {
     this.onTap,
   });
 
-  Color getSeverityColor(String severity) {
-    switch (severity.toLowerCase()) {
-      case "critical":
-        return AppColors.error;
-      case "high":
-        return AppColors.warning;
-      case "medium":
-        return AppColors.primary;
+  Color getCategoryBgColor(String category, String title) {
+    final titleLower = title.toLowerCase();
+    if (titleLower.contains('landslide')) return const Color(0xFFEF4444);
+    if (titleLower.contains('flood')) return const Color(0xFF3B82F6);
+    if (titleLower.contains('road closed') || titleLower.contains('road')) return const Color(0xFFFB923C);
+    if (titleLower.contains('heavy rain') || titleLower.contains('rain')) return const Color(0xFF2563EB);
+    if (titleLower.contains('snowfall') || titleLower.contains('snow')) return const Color(0xFF14B8A6);
+    if (titleLower.contains('wind')) return const Color(0xFF0D9488);
+
+    switch (category.toLowerCase()) {
+      case "weather":
+        return const Color(0xFF3B82F6);
+      case "road":
+        return const Color(0xFFFB923C);
+      case "safety":
+        return const Color(0xFFEF4444);
       default:
-        return AppColors.success;
+        return const Color(0xFF6B7280);
     }
   }
 
-  IconData getCategoryIcon(String category) {
-    switch (category) {
-      case "Road Alert":
-        return Icons.traffic;
-      case "Weather Alert":
-        return Icons.cloud;
-      case "Emergency Alert":
-        return Icons.emergency;
-      case "Network Alert":
-        return Icons.wifi;
-      case "Utility Alert":
-        return Icons.power;
+  IconData getCategoryIcon(String category, String title) {
+    final titleLower = title.toLowerCase();
+    if (titleLower.contains('landslide')) return Icons.terrain_rounded;
+    if (titleLower.contains('flood')) return Icons.waves_rounded;
+    if (titleLower.contains('road closed')) return Icons.traffic_rounded;
+    if (titleLower.contains('heavy rain') || titleLower.contains('rain')) return Icons.water_drop_rounded;
+    if (titleLower.contains('snowfall') || titleLower.contains('snow')) return Icons.ac_unit_rounded;
+    if (titleLower.contains('wind')) return Icons.air_rounded;
+
+    switch (category.toLowerCase()) {
+      case "weather":
+        return Icons.cloud_rounded;
+      case "road":
+        return Icons.traffic_rounded;
+      case "safety":
+        return Icons.warning_amber_rounded;
       default:
-        return Icons.notifications;
+        return Icons.notifications_rounded;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final severityColor = getSeverityColor(alert.severity);
-    final categoryIcon = getCategoryIcon(alert.category);
+    final bgColor = getCategoryBgColor(alert.category, alert.title);
+    final icon = getCategoryIcon(alert.category, alert.title);
+    final isNew = alert.isNew;
 
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: severityColor.withValues(alpha: 0.12),
-                child: Icon(categoryIcon, color: severityColor, size: 22),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isNew ? const Color(0xFFF0FDF4) : Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isNew ? const Color(0xFF067A46).withValues(alpha: 0.15) : Colors.transparent,
+                width: 1.2,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            alert.title,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: severityColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            alert.severity,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: severityColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      alert.description,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                        height: 1.4,
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        icon,
+                        color: Colors.white,
+                        size: 28,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade500),
-                        const SizedBox(width: 4),
-                        Text(
-                          alert.location,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
+                    if (isNew)
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF067A46),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'NEW',
+                            style: GoogleFonts.outfit(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.3,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Icon(Icons.label_outline, size: 14, color: Colors.grey.shade500),
-                        const SizedBox(width: 4),
-                        Text(
-                          alert.category,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              alert.title,
+                              style: GoogleFonts.outfit(
+                                fontSize: 16,
+                                fontWeight: isNew ? FontWeight.w800 : FontWeight.w700,
+                                color: AppColors.textPrimary,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        alert.location,
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          color: const Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      alert.timeAgo,
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        color: isNew ? const Color(0xFF067A46) : const Color(0xFF94A3B8),
+                        fontWeight: isNew ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                    if (isNew)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF067A46),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

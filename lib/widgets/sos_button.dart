@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../core/constants/app_images.dart';
 
 class SOSButton extends StatefulWidget {
   final bool isLoading;
@@ -28,9 +28,9 @@ class _SOSButtonState extends State<SOSButton>
     super.initState();
     _pulseCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1700),
-    )..repeat(reverse: false);
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.1).animate(
+      duration: const Duration(milliseconds: 1900),
+    )..repeat();
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.14).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
     );
   }
@@ -43,42 +43,61 @@ class _SOSButtonState extends State<SOSButton>
 
   @override
   Widget build(BuildContext context) {
-    final diameter = 160.0;
+    const double innerDiameter = 210.0;
+    const double outerPinkDiameter = innerDiameter + 56;
+    const double pulsePadding = 10;
 
     return SizedBox(
-      width: diameter + 40,
-      height: diameter + 40,
+      width: outerPinkDiameter + pulsePadding * 2,
+      height: outerPinkDiameter + pulsePadding * 2,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
+          // ── Soft animated outer red glow pulse (aura) ──
           if (!widget.isLoading && !widget.isDisabled)
             AnimatedBuilder(
               animation: _pulseAnim,
-              builder: (_, child) {
-                return Container(
-                  width: diameter + 28 * _pulseAnim.value,
-                  height: diameter + 28 * _pulseAnim.value,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFFF4D4D).withValues(alpha: 0.15 * (1.1 - _pulseAnim.value + 1.0)),
+              builder: (_, __) {
+                final progress =
+                    ((_pulseAnim.value - 1.0) / 0.14).clamp(0.0, 1.0);
+                final opacity = (1.0 - progress) * 0.55;
+                return Transform.scale(
+                  scale: _pulseAnim.value,
+                  child: Container(
+                    width: outerPinkDiameter,
+                    height: outerPinkDiameter,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        center: Alignment.center,
+                        stops: const [0.55, 1.0],
+                        colors: [
+                          const Color(0xFFFFB4B4).withValues(alpha: opacity * 0.7),
+                          const Color(0xFFFFC5C5).withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },
             ),
-          // Soft pink outer border ring matching picture
+
+          // ── Outer soft pink ring container (as in ref) ──
           Container(
-            width: diameter + 18,
-            height: diameter + 18,
+            width: outerPinkDiameter,
+            height: outerPinkDiameter,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFFFEAEB),
+              color: const Color(0xFFFFE6E7),
               border: Border.all(
-                color: const Color(0xFFFFCDD2),
-                width: 2,
+                color: const Color(0xFFFFC2C4),
+                width: 2.0,
               ),
             ),
           ),
+
+          // ── Red circular interactive button (gradient + shadow) ──
           GestureDetector(
             onTapDown: widget.isLoading || widget.isDisabled
                 ? null
@@ -94,52 +113,69 @@ class _SOSButtonState extends State<SOSButton>
                 : () => setState(() => _isPressed = false),
             onTap: widget.isLoading || widget.isDisabled ? null : widget.onPressed,
             child: AnimatedScale(
-              duration: const Duration(milliseconds: 120),
-              scale: widget.isLoading ? 0.96 : (_isPressed ? 0.93 : 1),
+              duration: const Duration(milliseconds: 140),
+              scale: widget.isLoading ? 0.97 : (_isPressed ? 0.94 : 1.0),
               curve: Curves.easeInOut,
               child: Container(
-                width: diameter,
-                height: diameter,
+                width: innerDiameter,
+                height: innerDiameter,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: widget.isDisabled
+                        ? const [Color(0xFFA9B1BD), Color(0xFF6B7280)]
+                        : const [Color(0xFFFF5757), Color(0xFFE11919)],
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: (widget.isDisabled
-                              ? const Color(0xFF94A3B8)
-                              : const Color(0xFFEF4444))
-                          .withValues(alpha: 0.35),
-                      blurRadius: 18,
-                      offset: const Offset(0, 6),
+                              ? const Color(0xFF7B8794)
+                              : const Color(0xFFFF3535))
+                          .withValues(alpha: 0.42),
+                      blurRadius: 28,
+                      spreadRadius: 3,
+                      offset: const Offset(0, 10),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 12,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: widget.isLoading
-                    ? const Center(
-                        child: SizedBox(
-                          width: 36,
-                          height: 36,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: Color(0xFFEF4444),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      width: 2.0,
+                    ),
+                  ),
+                  child: Center(
+                    child: widget.isLoading
+                        ? const SizedBox(
+                            width: 46,
+                            height: 46,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3.8,
+                              color: Colors.white,
+                              backgroundColor: Colors.white24,
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(22.0),
+                            child: Image.asset(
+                              AppImages.sosLogo,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.high,
+                              isAntiAlias: true,
+                            ),
                           ),
-                        ),
-                      )
-                    : ClipOval(
-                        child: ColorFiltered(
-                          colorFilter: widget.isDisabled
-                              ? const ColorFilter.matrix(<double>[
-                                  0.2126, 0.7152, 0.0722, 0, 0,
-                                  0.2126, 0.7152, 0.0722, 0, 0,
-                                  0.2126, 0.7152, 0.0722, 0, 0,
-                                  0,      0,      0,      1, 0,
-                                ])
-                              : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
-                          child: Image.asset(
-                            'assests/images/sos_logo.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
+                  ),
+                ),
               ),
             ),
           ),

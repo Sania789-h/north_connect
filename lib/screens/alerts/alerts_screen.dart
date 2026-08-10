@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/constants/colors.dart';
+import '../../core/utils/helpers.dart';
 import '../../models/alert_model.dart';
 import '../../widgets/alert_card.dart';
 import '../../services/mock_database_service.dart';
-import 'add_alert_screen.dart';
+import 'alert_details_screen.dart';
+import 'add_alert_sheet.dart';
 
 class AlertsScreen extends StatefulWidget {
   const AlertsScreen({super.key});
@@ -14,7 +17,19 @@ class AlertsScreen extends StatefulWidget {
 }
 
 class _AlertsScreenState extends State<AlertsScreen> {
-  Future<List<AlertModel>> getAlerts() async {
+  static const List<String> _kFilters = [
+    'All',
+    'Weather',
+    'Road',
+    'Safety',
+    'Network',
+    'SOS',
+  ];
+  String _selectedFilter = 'All';
+  Key _refreshKey = UniqueKey();
+  bool _creating = false;
+
+  Future<List<AlertModel>> _getAlerts() async {
     try {
       final data = await Supabase.instance.client
           .from('alerts')
@@ -24,20 +39,20 @@ class _AlertsScreenState extends State<AlertsScreen> {
       final dbAlerts = List<Map<String, dynamic>>.from(data)
           .map((row) => AlertModel.fromMap(row))
           .toList();
-      
+
       final localAlerts = MockDatabaseService.alerts;
       final Set<String> existingIds = dbAlerts.map((a) => a.id ?? '').toSet();
-      
+
       final combined = <AlertModel>[];
       combined.addAll(localAlerts.where((a) => a.id != null && !existingIds.contains(a.id)));
       combined.addAll(dbAlerts);
-      
+
       combined.sort((a, b) {
         final dateA = a.createdAt ?? DateTime.now();
         final dateB = b.createdAt ?? DateTime.now();
         return dateB.compareTo(dateA);
       });
-      
+
       return combined;
     } catch (e) {
       debugPrint("Supabase alerts query failed, using offline fallback: $e");
@@ -45,114 +60,307 @@ class _AlertsScreenState extends State<AlertsScreen> {
     }
   }
 
+  List<AlertModel> _filterAlerts(List<AlertModel> alerts) {
+    if (_selectedFilter == 'All') return alerts;
+    final filter = _selectedFilter.toLowerCase();
+    return alerts.where((a) {
+      final cat = a.category.toLowerCase();
+      final title = a.title.toLowerCase();
+      return cat == filter ||
+          cat.contains(filter) ||
+          title.contains(filter);
+    }).toList();
+  }
+
+  Future<void> _handleCreateAlert() async {
+    if (_creating) return;
+    setState(() => _creating = true);
+    HapticFeedback.lightImpact();
+    try {
+      final created = await showModalBottomSheet<AlertModel>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        isDismissible: true,
+        enableDrag: true,
+        useSafeArea: true,
+        builder: (_) => const AddAlertSheet(),
+      );
+
+      if (created == null) return;
+
+      AlertModel saved = created;
+      try {
+        final insertMap = saved.toMap()..remove('id');
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) insertMap['user_id'] = userId;
+        final inserted = await Supabase.instance.client
+            .from('alerts')
+            .insert(insertMap)
+            .select()
+            .maybeSingle();
+        if (inserted != null) {
+          saved = AlertModel.fromMap(
+            Map<String, dynamic>.from(inserted as Map),
+          );
+        } else {
+          MockDatabaseService.addAlert(saved);
+        }
+      } catch (e) {
+        debugPrint('Supabase create alert failed: $e');
+        MockDatabaseService.addAlert(saved);
+      }
+
+      if (!mounted) return;
+      Helpers.showSnackBar(context, 'Alert added successfully.');
+      setState(() {
+        _refreshKey = UniqueKey();
+        _selectedFilter = 'All';
+      });
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        centerTitle: true,
-        title: const Text(
-          "Alerts",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
+      backgroundColor: const Color(0xFFF8FAFC),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _creating ? null : _handleCreateAlert,
+        backgroundColor: const Color(0xFF067A46),
+        foregroundColor: Colors.white,
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        icon: _creating
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.add_rounded, size: 22),
+        label: Text(
+          'Add Alert',
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const AddAlertScreen(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Color(0xFF0F172A),
+                      size: 22,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Alerts',
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const Spacer(),
+                  const SizedBox(width: 42),
+                ],
+              ),
             ),
-          );
-          setState(() {});
-        },
-        child: const Icon(Icons.add),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-        },
-        child: FutureBuilder<List<AlertModel>>(
-          future: getAlerts(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  "Error: ${snapshot.error}",
-                  style: const TextStyle(color: AppColors.error),
-                ),
-              );
-            }
-
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text(
-                  "No Alerts Available",
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              );
-            }
-
-            final alerts = snapshot.data!;
-
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: alerts.length,
-              itemBuilder: (context, index) {
-                final alert = alerts[index];
-                return AlertCard(
-                  alert: alert,
-                  onTap: () {
-                    // Option to show full alert info dialog
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(alert.title),
-                        content: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "Category: ${alert.category}",
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Location: ${alert.location}",
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Severity: ${alert.severity}",
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(alert.description),
-                            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: List.generate(_kFilters.length, (i) {
+                    final f = _kFilters[i];
+                    final selected = _selectedFilter == f;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _selectedFilter = f);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 11,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? const Color(0xFF067A46)
+                                : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: selected
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF067A46)
+                                          .withValues(alpha: 0.25),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Text(
+                            f,
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: selected
+                                  ? Colors.white
+                                  : const Color(0xFF64748B),
+                            ),
                           ),
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Close"),
-                          ),
-                        ],
                       ),
                     );
+                  }),
+                ),
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  HapticFeedback.lightImpact();
+                  setState(() => _refreshKey = UniqueKey());
+                },
+                color: const Color(0xFF067A46),
+                child: FutureBuilder<List<AlertModel>>(
+                  key: _refreshKey,
+                  future: _getAlerts(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF067A46),
+                        ),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return ListView(
+                        children: [
+                          const SizedBox(height: 120),
+                          Center(
+                            child: Text(
+                              'Error: ${snapshot.error}',
+                              style: const TextStyle(
+                                color: Color(0xFFDC2626),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return ListView(
+                        children: [
+                          const SizedBox(height: 80),
+                          Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 72,
+                                  height: 72,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF1F5F9),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.notifications_none_rounded,
+                                    color: Color(0xFF64748B),
+                                    size: 34,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                Text(
+                                  'No Alerts Available',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Tap "Add Alert" to create your first alert.',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 13,
+                                    color: const Color(0xFF94A3B8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    final filtered = _filterAlerts(snapshot.data!);
+
+                    if (filtered.isEmpty) {
+                      return ListView(
+                        children: [
+                          const SizedBox(height: 120),
+                          Center(
+                            child: Text(
+                              'No alerts in this category',
+                              style: GoogleFonts.outfit(
+                                fontSize: 14,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final alert = filtered[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: AlertCard(
+                            alert: alert,
+                            onTap: () {
+                              Helpers.push(
+                                context,
+                                AlertDetailsScreen(alert: alert),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    );
                   },
-                );
-              },
-            );
-          },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

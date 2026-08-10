@@ -10,8 +10,15 @@ class AppImages {
 
   static const homeBanner = "assests/images/home_banner.png";
   static const emergencyIcon = "assests/images/emergency.png";
+  static const sosLogo = "assests/images/sos_logo.png";
 
   static const noInternet = "assests/images/no_internet.png";
   static const weatherImage = "assests/images/weather_image.png";
   static const homeImage = "assests/images/home_image.png";
-}
+
+  // Carrier Icons
+  static const scomIcon = "assests/images/iccons/scom_icon.png";
+  static const jazzIcon = "assests/images/iccons/jazz_icon.png";
+  static const zongIcon = "assests/images/iccons/zong_icon.png";
+  static const telenorIcon = "assests/images/iccons/telenor_iccon.png";
+}

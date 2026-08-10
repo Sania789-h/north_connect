@@ -112,7 +112,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
       await _sosService.sendSOSRequest(
         latitude: _position!.latitude,
         longitude: _position!.longitude,
-        locationLabel: _locationSubtitle,
+        locationLabel: _cityText,
       );
 
       if (!mounted) return;
@@ -129,7 +129,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
 
   Future<void> _callContact(int index) async {
     setState(() => _callingIndex = index);
-    final phone = index == 0 ? '1122' : '15';
+    final phone = index == 0 ? '1122' : index == 1 ? '15' : '115';
     final success = await _sosService.launchPhoneCall(phone);
     if (!mounted) return;
     setState(() => _callingIndex = null);
@@ -138,94 +138,102 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
     }
   }
 
-  String get _locationTitle {
-    return 'Current Location';
-  }
-
-  String get _locationSubtitle {
-    if (_position == null) {
-      return _locationError ?? 'Enable permission to fetch your location';
-    }
+  String get _cityText {
     return 'Gilgit, Pakistan';
   }
 
   String get _latitudeText {
-    if (_position == null) return '--';
-    return '${_position!.latitude.toStringAsFixed(4)}${String.fromCharCode(176)} N';
+    if (_position == null) return '35.9214° N';
+    return '${_position!.latitude.toStringAsFixed(4)}° N';
   }
 
   String get _longitudeText {
-    if (_position == null) return '--';
-    return '${_position!.longitude.toStringAsFixed(4)}${String.fromCharCode(176)} E';
+    if (_position == null) return '74.3060° E';
+    return '${_position!.longitude.toStringAsFixed(4)}° E';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFBFD),
+      backgroundColor: Colors.white,
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            // Top App Bar matching picture (Back arrow left)
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: () => Helpers.pop(context),
                     icon: const Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      color: Color(0xFF1E293B),
+                      color: Color(0xFF0B1F3A),
                       size: 20,
                     ),
                   ),
+                  const Spacer(),
+                  Text(
+                    'Emergency SOS',
+                    style: GoogleFonts.outfit(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0B1F3A),
+                    ),
+                  ),
+                  const Spacer(flex: 2),
                 ],
               ),
             ),
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    const SizedBox(height: 6),
                     Text(
                       'Emergency SOS',
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
-                        fontSize: 22,
+                        fontSize: 30,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1E293B),
+                        color: const Color(0xFF0B1F3A),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
                       'Your location will be shared with\nemergency contacts.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        height: 1.4,
+                        fontSize: 15,
+                        height: 1.45,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF5D697B),
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
                     SOSButton(
                       isLoading: _sendingSOS,
                       isDisabled: _loadingLocation,
                       onPressed: _handleSOS,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
                       'Tap to Send SOS',
                       style: GoogleFonts.outfit(
-                        fontSize: 15,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF1E293B),
+                        color: const Color(0xFF0B1F3A),
                       ),
                     ),
                     const SizedBox(height: 28),
                     _buildLocationCard(),
                     const SizedBox(height: 16),
                     _buildContactsCard(),
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),
@@ -236,67 +244,83 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
     );
   }
 
+  // ── Cards ───────────────────────────────────────────────────
   Widget _buildLocationCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 12,
-            offset: Offset(0, 3),
-          ),
-        ],
+        color: const Color(0xFFFAFAFB),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFEEF1F6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _locationTitle,
+            'Current Location',
             style: GoogleFonts.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF1E293B),
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0B1F3A),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            _locationSubtitle,
-            style: GoogleFonts.outfit(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: _position == null
-                  ? const Color(0xFFDC2626)
-                  : const Color(0xFF64748B),
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           if (_loadingLocation)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.2),
-                ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Fetching location...',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF5D697B),
+                    ),
+                  ),
+                ],
               ),
             )
           else ...[
-            _locationRow(
-              icon: Icons.location_on_outlined,
-              label: 'Latitude: $_latitudeText',
+            Text(
+              _cityText,
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: _position == null
+                    ? const Color(0xFFDC2626)
+                    : const Color(0xFF5D697B),
+              ),
             ),
-            const SizedBox(height: 10),
-            _locationRow(
-              icon: Icons.explore_outlined,
-              label: 'Longitude: $_longitudeText',
-            ),
+            if (_position == null && _locationError != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                _locationError!,
+                style: GoogleFonts.outfit(
+                  fontSize: 12.5,
+                  color: const Color(0xFFDC2626),
+                  height: 1.35,
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
           ],
+          _locationRow(
+            icon: Icons.location_on_outlined,
+            label: 'Latitude: $_latitudeText',
+          ),
+          const SizedBox(height: 12),
+          _locationRow(
+            icon: Icons.explore_outlined,
+            label: 'Longitude: $_longitudeText',
+          ),
         ],
       ),
     );
@@ -308,15 +332,15 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF64748B)),
-        const SizedBox(width: 10),
+        Icon(icon, size: 19, color: const Color(0xFF5D697B)),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
             label,
             style: GoogleFonts.outfit(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF475569),
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1E2A3F),
             ),
           ),
         ),
@@ -327,18 +351,11 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   Widget _buildContactsCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(22, 24, 22, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 12,
-            offset: Offset(0, 3),
-          ),
-        ],
+        color: const Color(0xFFFAFAFB),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFEEF1F6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,34 +363,39 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
           Text(
             'Emergency Contacts',
             style: GoogleFonts.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF1E293B),
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0B1F3A),
             ),
           ),
-          const SizedBox(height: 16),
-          // Rescue 1122 Contact
+          const SizedBox(height: 18),
           _contactItem(
             index: 0,
             name: 'Rescue 1122',
             subtext: '1122',
             number: '1122',
-            icon: Icons.health_and_safety_rounded,
-            badgeColor: const Color(0xFF1B2A4A),
+            icon: Icons.local_fire_department_rounded,
+            badgeColor: const Color(0xFF0B2744),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
-          ),
-          // Police Contact
+          const _Divider(),
           _contactItem(
             index: 1,
             name: 'Police',
             subtext: null,
             number: '15',
             icon: Icons.local_police_rounded,
-            badgeColor: const Color(0xFF0F5EAF),
+            badgeColor: const Color(0xFF1D5FED),
           ),
+          const _Divider(),
+          _contactItem(
+            index: 2,
+            name: 'Edhi Ambulance',
+            subtext: null,
+            number: '115',
+            icon: Icons.local_hospital_rounded,
+            badgeColor: const Color(0xFFB45309),
+          ),
+          const SizedBox(height: 10),
         ],
       ),
     );
@@ -390,19 +412,26 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
     final isCalling = _callingIndex == index;
     return InkWell(
       onTap: isCalling ? null : () => _callContact(index),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
                 color: badgeColor,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: badgeColor.withValues(alpha: 0.18),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: Icon(icon, color: Colors.white, size: 20),
+              child: Icon(icon, color: Colors.white, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -412,9 +441,9 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                   Text(
                     name,
                     style: GoogleFonts.outfit(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1E293B),
+                      color: const Color(0xFF0B1F3A),
                     ),
                   ),
                   if (subtext != null) ...[
@@ -424,7 +453,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                       style: GoogleFonts.outfit(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF5D697B),
                       ),
                     ),
                   ],
@@ -437,20 +466,36 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                 height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Color(0xFF0F5EAF),
+                  color: Color(0xFF1D5FED),
                 ),
               )
             else
               Text(
                 number,
                 style: GoogleFonts.outfit(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF475569),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2E3A52),
                 ),
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Container(
+        margin: const EdgeInsets.only(left: 60),
+        height: 1,
+        color: const Color(0xFFEDEFF4),
       ),
     );
   }

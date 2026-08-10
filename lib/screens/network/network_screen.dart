@@ -10,13 +10,13 @@ class ScomLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.asset(
       'assests/images/iccons/scom_icon.png',
-      width: 44,
-      height: 44,
+      height: 38,
       fit: BoxFit.contain,
+      alignment: Alignment.centerLeft,
       errorBuilder: (context, error, stackTrace) => const Icon(
         Icons.cell_tower_rounded,
-        color: Color(0xFF067A46),
-        size: 24,
+        color: Color(0xFF22C55E),
+        size: 28,
       ),
     );
   }
@@ -29,13 +29,13 @@ class JazzLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.asset(
       'assests/images/iccons/jazz_icon.png',
-      width: 44,
-      height: 44,
+      height: 38,
       fit: BoxFit.contain,
+      alignment: Alignment.centerLeft,
       errorBuilder: (context, error, stackTrace) => const Icon(
         Icons.cell_tower_rounded,
         color: Color(0xFFDC2626),
-        size: 24,
+        size: 28,
       ),
     );
   }
@@ -48,13 +48,13 @@ class ZongLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.asset(
       'assests/images/iccons/zong_icon.png',
-      width: 44,
-      height: 44,
+      height: 38,
       fit: BoxFit.contain,
+      alignment: Alignment.centerLeft,
       errorBuilder: (context, error, stackTrace) => const Icon(
         Icons.cell_tower_rounded,
-        color: Color(0xFF10B981),
-        size: 24,
+        color: Color(0xFF22C55E),
+        size: 28,
       ),
     );
   }
@@ -67,13 +67,13 @@ class TelenorLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.asset(
       'assests/images/iccons/telenor_iccon.png',
-      width: 44,
-      height: 44,
+      height: 38,
       fit: BoxFit.contain,
+      alignment: Alignment.centerLeft,
       errorBuilder: (context, error, stackTrace) => const Icon(
         Icons.cell_tower_rounded,
         color: Color(0xFF0284C7),
-        size: 24,
+        size: 28,
       ),
     );
   }
@@ -89,7 +89,6 @@ class NetworkScreen extends StatefulWidget {
 }
 
 class _NetworkScreenState extends State<NetworkScreen> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -229,7 +228,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
   }) {
     final isFair = status.toLowerCase() == 'fair';
     final statusColor =
-        isFair ? const Color(0xFFF59E0B) : const Color(0xFF2ECC71);
+        isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
 
     showModalBottomSheet(
       context: context,
@@ -257,7 +256,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
               const SizedBox(height: 20),
               Row(
                 children: [
-                  logoWidget,
+                  SizedBox(width: 52, child: logoWidget),
                   const SizedBox(width: 14),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,7 +339,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
     );
   }
 
-  // ── Carrier Card Widget ──
+  // ── Carrier Card Widget matching UI Mockup ──
   Widget _buildCarrierCard({
     required String name,
     required String status,
@@ -350,69 +349,74 @@ class _NetworkScreenState extends State<NetworkScreen> {
   }) {
     final isFair = status.toLowerCase() == 'fair';
     final statusColor =
-        isFair ? const Color(0xFFF59E0B) : const Color(0xFF2ECC71);
+        isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        splashColor: const Color(0xFF067A46).withValues(alpha: 0.08),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
-            border: Border.all(color: const Color(0xFFEEF2F7), width: 1.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
           ),
-          child: Row(
-            children: [
-              // Logo
-              SizedBox(
-                width: 56,
-                height: 44,
-                child: Center(child: logoWidget),
-              ),
-              const SizedBox(width: 12),
-
-              // Name & Status
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: GoogleFonts.outfit(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F2C59),
-                        letterSpacing: 0.1,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      status,
-                      style: GoogleFonts.outfit(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: statusColor,
-                      ),
-                    ),
-                  ],
+        ],
+        border: Border.all(color: const Color(0xFFEEF2F6), width: 1.0),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          splashColor: const Color(0xFF22C55E).withValues(alpha: 0.08),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                // Natural Logo Widget
+                SizedBox(
+                  width: 56,
+                  height: 40,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: logoWidget,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
 
-              // Signal Bars
-              _buildSignalBars(signalBars, isFair),
-            ],
+                // Name & Status
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0F2C59),
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        status,
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: statusColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Signal Bars matching screenshot
+                _buildSignalBars(signalBars, isFair),
+              ],
+            ),
           ),
         ),
       ),
@@ -421,21 +425,20 @@ class _NetworkScreenState extends State<NetworkScreen> {
 
   // Signal bars widget matching screenshot style
   Widget _buildSignalBars(int activeBars, bool isFair) {
-    final activeColor = isFair
-        ? const Color(0xFFF59E0B)
-        : const Color(0xFF2ECC71);
+    final activeColor =
+        isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: List.generate(4, (index) {
         final isActive = index < activeBars;
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          width: 5,
-          height: (index + 1) * 7.0 + 4,
+          margin: const EdgeInsets.symmetric(horizontal: 1.5),
+          width: 4.5,
+          height: 8.0 + (index * 4.0),
           decoration: BoxDecoration(
-            color: isActive ? activeColor : const Color(0xFFD1D5DB),
-            borderRadius: BorderRadius.circular(3),
+            color: isActive ? activeColor : const Color(0xFFCBD5E1),
+            borderRadius: BorderRadius.circular(2.5),
           ),
         );
       }),
