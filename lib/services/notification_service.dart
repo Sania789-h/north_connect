@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:postgrest/postgrest.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestResponse, CountOption;
 import '../models/notification_model.dart';
 import '../services/mock_database_service.dart';
 import '../services/supabase_service.dart';
@@ -76,8 +76,8 @@ class NotificationService {
 
         if (resp is int) return resp;
         if (resp is PostgrestResponse) {
-          final int? c = resp.count;
-          if (c != null) return c;
+          final int c = resp.count;
+          if (c > 0) return c;
           final d = resp.data;
           if (d is List) return d.length;
         }

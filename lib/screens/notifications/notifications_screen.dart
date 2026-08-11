@@ -54,6 +54,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _onMarkAsRead(NotificationModel n) async {
     if (n.isRead) return;
     await _service.markAsRead(n.id!);
+    if (!mounted) return;
     Helpers.showSnackBar(context, 'Marked as read');
     _loadAll();
   }
@@ -64,6 +65,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return;
     }
     await _service.markAllAsRead();
+    if (!mounted) return;
     Helpers.showSnackBar(context, 'All notifications marked as read');
     _loadAll();
   }
@@ -107,6 +109,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
     if (confirmed == true) {
       await _service.deleteNotification(n.id!);
+      if (!mounted) return;
       Helpers.showSnackBar(context, 'Notification deleted');
       _loadAll();
     }
@@ -456,9 +459,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           final isSelected = _selectedCategory == cat;
           final count = cat == 'All'
               ? _notifications.length
-              : _service is NotificationService
-                  ? _notifications.where((n) => n.category == cat).length
-                  : 0;
+              : _notifications.where((n) => n.category == cat).length;
           final catIcon = cat == 'All' ? Icons.filter_list_rounded : _categoryConfig(cat).icon;
           final catColor = cat == 'All' ? AppColors.primary : _categoryConfig(cat).color;
           return GestureDetector(
@@ -554,6 +555,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 color: AppColors.error, size: 26),
           ),
           onDismissed: (_) => _service.deleteNotification(n.id!).then((_) {
+            if (!mounted) return;
             _loadAll();
             Helpers.showSnackBar(context, 'Notification deleted');
           }),
