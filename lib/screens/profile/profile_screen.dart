@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -6,7 +7,11 @@ import '../../core/constants/colors.dart';
 import '../../services/auth_service.dart';
 import '../../services/mock_database_service.dart';
 import '../auth/login_screen.dart';
+import '../alerts/alerts_screen.dart';
 import 'edit_profile_screen.dart';
+import 'settings_screen.dart';
+import 'help_support_screen.dart';
+import 'about_app_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,20 +25,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return null;
 
-    // Check offline profile state first
     if (MockDatabaseService.offlineProfile != null) {
       return MockDatabaseService.offlineProfile;
     }
 
-    final fallbackName = user.userMetadata?['full_name'] ?? 
-        (user.email != null && user.email!.contains('@') ? user.email!.split('@').first : 'User');
+    final fallbackName = user.userMetadata?['full_name'] ??
+        (user.email != null && user.email!.contains('@')
+            ? user.email!.split('@').first
+            : 'User');
 
     final fallbackProfile = {
       'id': user.id,
       'full_name': fallbackName,
       'email': user.email ?? '',
-      'phone': '',
-      'bio': 'Offline Profile Mode',
+      'phone': user.phone ?? '+92 300 1234567',
+      'bio': '',
       'avatar_url': '',
       'gender': 'Other',
       'location': '',
@@ -55,6 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'id': user.id,
           'full_name': fallbackName,
           'email': user.email ?? '',
+          'phone': user.phone ?? '+92 300 1234567',
         });
 
         final newData = await Supabase.instance.client
@@ -65,39 +72,176 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         return newData;
       } catch (dbErr) {
-        debugPrint("Error writing profile to database, using fallback: $dbErr");
+        debugPrint(
+            "Error writing profile to database, using fallback: $dbErr");
         return fallbackProfile;
       }
     } catch (e) {
-      debugPrint("Error reading profile from database, using fallback: $e");
+      debugPrint(
+          "Error reading profile from database, using fallback: $e");
       return fallbackProfile;
     }
   }
 
   Future<void> logout() async {
+    final ok = await _confirmLogout();
+    if (!ok) return;
     await AuthService().signOut();
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LoginScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
     }
   }
 
+  Future<bool> _confirmLogout() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            title: Text('Logout',
+                style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B))),
+            content: Text('Are you sure you want to logout?',
+                style: GoogleFonts.outfit(
+                    color: const Color(0xFF64748B))),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Cancel',
+                    style: GoogleFonts.outfit(
+                        color: const Color(0xFF64748B))),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEF4444),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text('Logout',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  void _navigate(Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => screen),
+    );
+  }
+
+  void _navigateAlerts() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AlertsScreen()),
+    );
+  }
+
+  void _navigateSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+  }
+
+  void _navigateHelp() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+    );
+  }
+
+  void _navigateAbout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AboutAppScreen()),
+    );
+  }
+
+  void _showComingSoon(String title) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(4))),
+            const SizedBox(height: 18),
+            Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                    color: Color(0xFFF0F4F8), shape: BoxShape.circle),
+                child: const Icon(Icons.rocket_launch_rounded,
+                    size: 30, color: Color(0xFF067A46))),
+            const SizedBox(height: 14),
+            Text('$title - Coming Soon',
+                style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B))),
+            const SizedBox(height: 6),
+            Text('This feature is under development.',
+                style: GoogleFonts.outfit(
+                    fontSize: 13, color: const Color(0xFF64748B))),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF067A46),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                child: Text('Got it',
+                    style: GoogleFonts.outfit(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: FutureBuilder<Map<String, dynamic>?>(
         future: getProfile(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
+                child: CircularProgressIndicator(
+                    color: Color(0xFF067A46)));
           }
 
           if (!snapshot.hasData) {
@@ -112,561 +256,297 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.grey[100],
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.person_off_rounded, size: 40, color: Colors.grey[300]),
+                    child: Icon(Icons.person_off_rounded,
+                        size: 40, color: Colors.grey[300]),
                   ),
                   const SizedBox(height: 16),
                   Text("Unable to load profile",
-                      style: GoogleFonts.outfit(color: AppColors.textSecondary, fontSize: 15)),
+                      style: GoogleFonts.outfit(
+                          color: const Color(0xFF64748B), fontSize: 15)),
                 ],
               ),
             );
           }
 
           final profile = snapshot.data!;
-          final name = profile['full_name'] ?? 'User';
-          final email = profile['email'] ?? '';
-          final phone = profile['phone'] ?? '';
-          final bio = profile['bio'] ?? '';
+          final name = profile['full_name'] ?? 'Ali Raza';
+          final email = (profile['email'] as String? ?? 'ali.raza@email.com')
+              .trim()
+              .isEmpty
+              ? 'ali.raza@email.com'
+              : (profile['email'] as String);
+          final rawPhone = (profile['phone'] as String? ?? '').toString().trim();
+          final phone = rawPhone.isEmpty ? '+92 300 1234567' : rawPhone;
           final avatarUrl = profile['avatar_url'] as String? ?? '';
-          final gender = profile['gender'] as String? ?? 'Not specified';
-          final location = profile['location'] as String? ?? 'Not specified';
-          final emergencyName = profile['emergency_contact_name'] as String? ?? '';
-          final emergencyPhone = profile['emergency_contact_phone'] as String? ?? '';
-          final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
+          final initial =
+              name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
-          return CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 200,
-                pinned: true,
-                stretch: true,
-                backgroundColor: AppColors.primary,
-                flexibleSpace: FlexibleSpaceBar(
-                  stretchModes: const [StretchMode.zoomBackground],
-                  background: Stack(
-                    fit: StackFit.expand,
+          return SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
+              child: Column(
+                children: [
+                  Row(
                     children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Color(0xFF1E3A2F),
-                              Color(0xFF0D281E),
-                            ],
-                          ),
+                      IconButton(
+                        onPressed: () => Navigator.maybePop(context),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Color(0xFF1E293B),
+                          size: 24,
                         ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                            minWidth: 40, minHeight: 40),
                       ),
-                      Positioned(
-                        top: -60,
-                        right: -60,
-                        child: Container(
-                          width: 240,
-                          height: 240,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.secondary.withValues(alpha: 0.08),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: -80,
-                        left: -40,
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withValues(alpha: 0.03),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 80,
-                        left: -20,
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.secondary.withValues(alpha: 0.06),
-                          ),
-                        ),
-                      ),
+                      const Expanded(child: SizedBox()),
+                      const SizedBox(width: 40),
                     ],
                   ),
-                ),
-              ),
-
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
+                  const SizedBox(height: 24),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.bottomRight,
                     children: [
-                      Transform.translate(
-                        offset: const Offset(0, -50),
-                        child: Column(
-                          children: [
-                            GestureDetector(
-                              onTap: () async {
-                                final didUpdate = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EditProfileScreen(currentProfile: profile),
-                                  ),
-                                );
-                                if (didUpdate == true && mounted) setState(() {});
-                              },
-                              child: Stack(
-                                alignment: Alignment.bottomRight,
-                                children: [
-                                  Container(
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 4),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.12),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                      ],
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 46,
-                                      backgroundColor: AppColors.secondary,
-                                      backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                                      child: avatarUrl.isEmpty
-                                          ? Text(
-                                              initial,
-                                              style: GoogleFonts.outfit(
-                                                fontSize: 36,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white,
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2.5),
-                                    ),
-                                    child: const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              name,
-                              style: GoogleFonts.outfit(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            if (bio.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                child: Text(
-                                  bio,
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 14,
-                                    color: AppColors.textSecondary,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _buildInfoChip(Icons.email_outlined, email),
-                              ],
-                            ),
-                            if (phone.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildInfoChip(Icons.phone_outlined, phone),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-
-                      Transform.translate(
-                        offset: const Offset(0, -20),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildStatItem("Trips", "12", Icons.explore_rounded, AppColors.primary),
-                              _buildStatDivider(),
-                              _buildStatItem("Reviews", "8", Icons.star_rounded, AppColors.secondary),
-                              _buildStatDivider(),
-                              _buildStatItem("Photos", "46", Icons.photo_library_rounded, Colors.blue),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-                      _buildSectionTitle("Traveler Information"),
-                      const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        width: 140,
+                        height: 140,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 12,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFE2E8F0),
                         ),
-                        child: Column(
-                          children: [
-                            _buildInfoRow(Icons.location_on_outlined, "Home Base", location, Colors.redAccent),
-                            const Divider(height: 24, thickness: 0.5),
-                            _buildInfoRow(Icons.face_rounded, "Gender", gender, Colors.blue),
-                            if (emergencyName.isNotEmpty || emergencyPhone.isNotEmpty) ...[
-                              const Divider(height: 24, thickness: 0.5),
-                              _buildInfoRow(
-                                Icons.emergency_share_outlined, 
-                                "Emergency Contact", 
-                                "${emergencyName.isNotEmpty ? emergencyName : 'Not Set'}${emergencyPhone.isNotEmpty ? ' ($emergencyPhone)' : ''}", 
-                                AppColors.error
-                              ),
-                            ],
-                          ],
+                        child: ClipOval(
+                          child: avatarUrl.isNotEmpty
+                              ? Image.network(avatarUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      _avatarFallback(initial),
+                                )
+                              : _avatarFallback(initial),
                         ),
                       ),
-
-                      const SizedBox(height: 24),
-
-                      _buildSectionTitle("Settings"),
-
-                      const SizedBox(height: 12),
-
-                      _buildMenuCard(
-                        items: [
-                          _MenuItem(
-                            icon: Icons.person_outline_rounded,
-                            title: "Edit Profile",
-                            subtitle: "Name, phone, bio",
-                            color: AppColors.primary,
-                            onTap: () async {
-                              final didUpdate = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EditProfileScreen(currentProfile: profile),
-                                ),
-                              );
-                              if (didUpdate == true && mounted) setState(() {});
-                            },
+                      Positioned(
+                        bottom: 4,
+                        right: 4,
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF067A46),
+                            shape: BoxShape.circle,
                           ),
-                          _MenuItem(
-                            icon: Icons.notifications_outlined,
-                            title: "Notifications",
-                            subtitle: "Alert preferences",
-                            color: AppColors.warning,
-                            onTap: () {},
-                          ),
-                          _MenuItem(
-                            icon: Icons.security_rounded,
-                            title: "Privacy & Security",
-                            subtitle: "Account protection",
-                            color: Colors.blue,
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      _buildSectionTitle("Support"),
-
-                      const SizedBox(height: 12),
-
-                      _buildMenuCard(
-                        items: [
-                          _MenuItem(
-                            icon: Icons.info_outline_rounded,
-                            title: "About App",
-                            subtitle: "Version 1.0.0",
-                            color: AppColors.textSecondary,
-                            onTap: () {},
-                          ),
-                          _MenuItem(
-                            icon: Icons.help_outline_rounded,
-                            title: "Help & Support",
-                            subtitle: "FAQs and contact us",
-                            color: Colors.teal,
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: OutlinedButton.icon(
-                          onPressed: logout,
-                          icon: const Icon(Icons.logout_rounded, size: 20),
-                          label: Text("Sign Out",
-                              style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600)),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                            side: BorderSide(color: AppColors.error.withValues(alpha: 0.25)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 22,
+                            weight: 700,
                           ),
                         ),
                       ),
-
-                      const SizedBox(height: 100),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  Text(
+                    name,
+                    style: GoogleFonts.outfit(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    email,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    phone,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 36),
+                  _tile(
+                    icon: Icons.edit_rounded,
+                    title: 'Edit Profile',
+                    onTap: () async {
+                      final didUpdate = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              EditProfileScreen(currentProfile: profile),
+                        ),
+                      );
+                      if (didUpdate == true && mounted) setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  _tile(
+                    icon: Icons.notifications_active_outlined,
+                    title: 'My Alerts',
+                    onTap: _navigateAlerts,
+                  ),
+                  const SizedBox(height: 6),
+                  _tile(
+                    icon: Icons.location_pin,
+                    title: 'Saved Locations',
+                    onTap: () => _showComingSoon('Saved Locations'),
+                  ),
+                  const SizedBox(height: 6),
+                  _tile(
+                    icon: Icons.settings_rounded,
+                    title: 'Settings',
+                    onTap: _navigateSettings,
+                  ),
+                  const SizedBox(height: 6),
+                  _tile(
+                    icon: Icons.help_rounded,
+                    title: 'Help & Support',
+                    onTap: _navigateHelp,
+                  ),
+                  const SizedBox(height: 6),
+                  _tile(
+                    icon: Icons.info_rounded,
+                    title: 'About App',
+                    onTap: _navigateAbout,
+                  ),
+                  const SizedBox(height: 36),
+                  Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    child: InkWell(
+                      onTap: logout,
+                      borderRadius: BorderRadius.circular(18),
+                      splashColor:
+                          const Color(0xFFEF4444).withValues(alpha: 0.08),
+                      highlightColor:
+                          const Color(0xFFEF4444).withValues(alpha: 0.04),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                              color: const Color(0xFFEF4444)
+                                  .withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.logout_rounded,
+                                color: Color(0xFFEF4444), size: 24),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Logout',
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFEF4444),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildInfoChip(IconData icon, String text) {
+  Widget _avatarFallback(String initial) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: Colors.grey[400]),
-          const SizedBox(width: 4),
-          Text(text, style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey[500])),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          value,
+      color: const Color(0xFF1B547A),
+      child: Center(
+        child: Text(
+          initial,
           style: GoogleFonts.outfit(
-            fontSize: 18,
+            fontSize: 46,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: Colors.white,
           ),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.outfit(
-            fontSize: 12,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatDivider() {
-    return Container(
-      width: 1,
-      height: 36,
-      color: Colors.grey.withValues(alpha: 0.12),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title,
-        style: GoogleFonts.outfit(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textSecondary,
         ),
       ),
     );
   }
 
-  Widget _buildMenuCard({required List<_MenuItem> items}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
+  Widget _roundBtn({
+    required VoidCallback onTap,
+    required IconData icon,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 8,
+                offset: Offset(0, 2)),
+          ],
+        ),
+        child: Icon(icon,
+            size: 18, color: const Color(0xFF1E293B)),
       ),
-      child: Column(
-        children: List.generate(items.length, (index) {
-          final item = items[index];
-          return Column(
+    );
+  }
+
+  Widget _tile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(14),
+        splashColor: const Color(0xFF067A46).withValues(alpha: 0.05),
+        highlightColor:
+            const Color(0xFF067A46).withValues(alpha: 0.025),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+          child: Row(
             children: [
-              if (index > 0)
-                Divider(height: 1, indent: 60, color: Colors.grey.withValues(alpha: 0.08)),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: item.onTap,
-                  borderRadius: BorderRadius.vertical(
-                    top: index == 0 ? const Radius.circular(20) : Radius.zero,
-                    bottom: index == items.length - 1 ? const Radius.circular(20) : Radius.zero,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: item.color.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(item.icon, color: item.color, size: 20),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.title,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              Text(
-                                item.subtitle,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right_rounded, color: Colors.grey[300], size: 20),
-                      ],
-                    ),
+              Icon(icon,
+                  size: 28, color: const Color(0xFF1E293B)),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF1E293B),
                   ),
                 ),
               ),
+              const SizedBox(width: 10),
+              const Icon(Icons.chevron_right_rounded,
+                  size: 22, color: Color(0xFF94A3B8)),
             ],
-          );
-        }),
+          ),
+        ),
       ),
     );
   }
-
-  Widget _buildInfoRow(IconData icon, String label, String value, Color color) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: color, size: 18),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.outfit(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              Text(
-                value,
-                style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MenuItem {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _MenuItem({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
 }

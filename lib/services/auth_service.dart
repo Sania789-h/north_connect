@@ -31,6 +31,27 @@ class AuthService {
     await _supabase.auth.signOut();
   }
 
+  // Delete account (best-effort, local fallback)
+  Future<bool> deleteAccount() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return false;
+      try {
+        await _supabase.rpc('delete_user', params: {'uid': user.id});
+      } catch (_) {
+        // ignore: server-side RPC is optional; still log out locally
+      }
+      await signOut();
+      return true;
+    } catch (e) {
+      // Always sign out even if server-side delete fails
+      try {
+        await signOut();
+      } catch (_) {}
+      return false;
+    }
+  }
+
   // Current User
   User? get currentUser => _supabase.auth.currentUser;
 

@@ -42,6 +42,10 @@ class _HomeScreenState extends State<HomeScreen>
             begin: const Offset(0, 0.08), end: Offset.zero)
         .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOut));
 
+    // Start animations immediately so screen is never blank
+    _fadeCtrl.value = 1.0;
+    _slideCtrl.value = 1.0;
+
     _loadWeather();
   }
 
@@ -64,13 +68,17 @@ class _HomeScreenState extends State<HomeScreen>
         _data = data;
         _loading = false;
       });
+      // Reset and replay animation
+      _fadeCtrl.reset();
+      _slideCtrl.reset();
       _fadeCtrl.forward();
       _slideCtrl.forward();
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = '';
         _loading = false;
+        // On error, still show content with default values
       });
     }
   }

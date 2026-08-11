@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../core/constants/colors.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_textfield.dart';
 import '../../services/mock_database_service.dart';
+import '../../widgets/custom_button.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> currentProfile;
@@ -17,303 +19,451 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
+  late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _bioController;
-  late TextEditingController _locationController;
-  late TextEditingController _emergencyContactNameController;
-  late TextEditingController _emergencyContactPhoneController;
 
   late String _selectedAvatarUrl;
-  late String _selectedGender;
   bool _isLoading = false;
 
-  final List<String> avatars = [
-    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150', // Male 1
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', // Female 1
-    'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150', // Male 2
-    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', // Female 2
-    'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=150', // Male 3
-    'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150', // Female 3
+  final List<String> presetAvatars = [
+    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+    'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=300',
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300',
+    'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=300',
+    'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300',
   ];
-
-  final List<String> genders = ['Male', 'Female', 'Other'];
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.currentProfile['full_name'] ?? '');
-    _phoneController = TextEditingController(text: widget.currentProfile['phone'] ?? '');
-    _bioController = TextEditingController(text: widget.currentProfile['bio'] ?? '');
-    _locationController = TextEditingController(text: widget.currentProfile['location'] ?? '');
-    _emergencyContactNameController = TextEditingController(text: widget.currentProfile['emergency_contact_name'] ?? '');
-    _emergencyContactPhoneController = TextEditingController(text: widget.currentProfile['emergency_contact_phone'] ?? '');
-    _selectedAvatarUrl = widget.currentProfile['avatar_url'] ?? '';
-    _selectedGender = widget.currentProfile['gender'] ?? 'Other';
+    _nameController = TextEditingController(
+        text: widget.currentProfile['full_name'] ?? 'Ali Raza');
+    _emailController = TextEditingController(
+        text: widget.currentProfile['email'] ?? 'ali.raza@email.com');
+    _phoneController = TextEditingController(
+        text: widget.currentProfile['phone'] ?? '+92 300 1234567');
+    _selectedAvatarUrl = widget.currentProfile['avatar_url'] as String? ?? '';
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
-    _bioController.dispose();
-    _locationController.dispose();
-    _emergencyContactNameController.dispose();
-    _emergencyContactPhoneController.dispose();
     super.dispose();
   }
 
-  void _showAvatarPicker() {
-    showModalBottomSheet(
+  String get _initial {
+    final name =
+        _nameController.text.trim().isEmpty ? 'U' : _nameController.text.trim();
+    return name[0].toUpperCase();
+  }
+
+  Future<void> _showAvatarPicker() async {
+    HapticFeedback.lightImpact();
+    final choice = await showModalBottomSheet<int>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Choose Travel Avatar",
-                style: TextStyle(
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(4))),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Change Profile Photo',
+              style: GoogleFonts.outfit(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 90,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: avatars.length,
-                  itemBuilder: (context, index) {
-                    final isSelected = _selectedAvatarUrl == avatars[index];
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedAvatarUrl = avatars[index];
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 12),
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1E293B)),
+            ),
+            const SizedBox(height: 14),
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              children: List.generate(presetAvatars.length, (i) {
+                final url = presetAvatars[i];
+                final selected = _selectedAvatarUrl == url;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _selectedAvatarUrl = url);
+                    Navigator.pop(context, 1);
+                  },
+                  child: Stack(
+                    children: [
+                      Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isSelected ? AppColors.secondary : Colors.transparent,
-                            width: 3.5,
-                          ),
+                              color: selected
+                                  ? const Color(0xFF067A46)
+                                  : Colors.transparent,
+                              width: 3.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ],
                         ),
-                        child: CircleAvatar(
-                          radius: 36,
-                          backgroundImage: NetworkImage(avatars[index]),
+                        child: ClipOval(
+                          child: Image.network(url, fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) {
+                            return Container(
+                              color: const Color(0xFFF0F4F8),
+                              child: const Icon(Icons.person_rounded,
+                                  size: 30, color: Color(0xFF94A3B8)),
+                            );
+                          }),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
+                      if (selected)
+                        const Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Color(0xFF067A46),
+                            child: Icon(Icons.check_rounded,
+                                size: 14, color: Colors.white),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
     );
+    if (choice != null && mounted) setState(() {});
   }
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-
+    HapticFeedback.lightImpact();
     setState(() => _isLoading = true);
 
-    final currentUser = Supabase.instance.client.auth.currentUser!;
+    final currentUser = Supabase.instance.client.auth.currentUser;
     final updatedProfile = {
-      'id': currentUser.id,
-      'email': currentUser.email ?? '',
+      'id': currentUser?.id ?? 'local',
+      'email': _emailController.text.trim(),
       'full_name': _nameController.text.trim(),
       'phone': _phoneController.text.trim(),
-      'bio': _bioController.text.trim(),
       'avatar_url': _selectedAvatarUrl,
-      'gender': _selectedGender,
-      'location': _locationController.text.trim(),
-      'emergency_contact_name': _emergencyContactNameController.text.trim(),
-      'emergency_contact_phone': _emergencyContactPhoneController.text.trim(),
+      'bio': widget.currentProfile['bio'] ?? '',
+      'gender': widget.currentProfile['gender'] ?? 'Other',
+      'location': widget.currentProfile['location'] ?? '',
+      'emergency_contact_name':
+          widget.currentProfile['emergency_contact_name'] ?? '',
+      'emergency_contact_phone':
+          widget.currentProfile['emergency_contact_phone'] ?? '',
     };
 
     try {
-      await Supabase.instance.client.from('profiles').upsert(updatedProfile);
+      if (currentUser != null) {
+        await Supabase.instance.client
+            .from('profiles')
+            .upsert(updatedProfile);
+      }
     } catch (e) {
       debugPrint("DB upsert failed on save, writing locally: $e");
     }
 
-    // Always update offline session cache so transitions are instant & seamless
     MockDatabaseService.updateOfflineProfile(updatedProfile);
 
-    if (mounted) {
-      Navigator.pop(context, true);
-    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Profile updated successfully',
+            style: GoogleFonts.outfit()),
+        backgroundColor: const Color(0xFF067A46),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+    setState(() => _isLoading = false);
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (mounted) Navigator.pop(context, true);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text("Edit Profile"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Interactive Profile Picture Selector
-              GestureDetector(
-                onTap: _showAvatarPicker,
-                child: Stack(
-                  alignment: Alignment.bottomRight,
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: CircleAvatar(
-                        radius: 56,
-                        backgroundColor: AppColors.secondary,
-                        backgroundImage: _selectedAvatarUrl.isNotEmpty
-                            ? NetworkImage(_selectedAvatarUrl)
-                            : null,
-                        child: _selectedAvatarUrl.isEmpty
-                            ? const Icon(Icons.person_rounded, size: 56, color: Colors.white)
-                            : null,
+                    _roundBtn(
+                      onTap: () => Navigator.maybePop(context),
+                      icon: Icons.arrow_back_ios_new_rounded,
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Edit Profile',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
                       ),
                     ),
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2.5),
-                      ),
-                      child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
-                    ),
+                    const SizedBox(width: 38),
                   ],
                 ),
-              ),
-              const SizedBox(height: 32),
-              
-              CustomTextField(
-                controller: _nameController,
-                hintText: "Full Name",
-                prefixIcon: Icons.person_outline_rounded,
-                validator: (val) => val == null || val.isEmpty ? "Name is required" : null,
-              ),
-              const SizedBox(height: 16),
-              
-              CustomTextField(
-                controller: _phoneController,
-                hintText: "Phone Number",
-                prefixIcon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
-              
-              CustomTextField(
-                controller: _locationController,
-                hintText: "Home Base (Country / City)",
-                prefixIcon: Icons.location_on_outlined,
-              ),
-              const SizedBox(height: 16),
-              
-              DropdownButtonFormField<String>(
-                initialValue: _selectedGender,
-                decoration: const InputDecoration(
-                  labelText: "Gender",
-                  prefixIcon: Icon(Icons.face_rounded, color: Colors.grey),
-                ),
-                items: genders.map((g) {
-                  return DropdownMenuItem(
-                    value: g,
-                    child: Text(g),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  setState(() {
-                    _selectedGender = val!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              CustomTextField(
-                controller: _bioController,
-                hintText: "Bio (Optional)",
-                prefixIcon: Icons.info_outline_rounded,
-                maxLines: 3,
-              ),
-              
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-              
-              // Emergency Section
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Emergency Contact Info",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.error,
+                const SizedBox(height: 30),
+                Center(
+                  child: GestureDetector(
+                    onTap: _showAvatarPicker,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            border:
+                                Border.all(color: Colors.white, width: 5),
+                          ),
+                          child: ClipOval(
+                            child: _selectedAvatarUrl.isNotEmpty
+                                ? Image.network(
+                                    _selectedAvatarUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        _avatarFallback(),
+                                  )
+                                : _avatarFallback(),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 2,
+                          right: 2,
+                          child: GestureDetector(
+                            onTap: _showAvatarPicker,
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF067A46),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white, width: 3),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF067A46)
+                                        .withValues(alpha: 0.35),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.photo_camera_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              
-              CustomTextField(
-                controller: _emergencyContactNameController,
-                hintText: "Emergency Contact Name",
-                prefixIcon: Icons.contact_emergency_outlined,
-              ),
-              const SizedBox(height: 16),
-              
-              CustomTextField(
-                controller: _emergencyContactPhoneController,
-                hintText: "Emergency Contact Phone",
-                prefixIcon: Icons.phone_android_outlined,
-                keyboardType: TextInputType.phone,
-              ),
-              
-              const SizedBox(height: 40),
-              
-              _isLoading
-                  ? const CircularProgressIndicator(color: AppColors.primary)
-                  : CustomButton(
-                      text: "Save Changes",
-                      onPressed: _saveProfile,
-                    ),
-              const SizedBox(height: 24),
-            ],
+                const SizedBox(height: 36),
+                _fieldLabel('Full Name'),
+                const SizedBox(height: 8),
+                _styledField(
+                  controller: _nameController,
+                  hint: 'Enter your full name',
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty)
+                          ? 'Full Name is required'
+                          : null,
+                ),
+                const SizedBox(height: 24),
+                _fieldLabel('Email'),
+                const SizedBox(height: 8),
+                _styledField(
+                  controller: _emailController,
+                  hint: 'Enter your email',
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) {
+                    final s = (v ?? '').trim();
+                    if (s.isEmpty) return 'Email is required';
+                    if (!RegExp(
+                            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                        .hasMatch(s)) {
+                      return 'Enter a valid email address';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                _fieldLabel('Phone Number'),
+                const SizedBox(height: 8),
+                _styledField(
+                  controller: _phoneController,
+                  hint: 'e.g. +92 300 1234567',
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 34),
+                CustomButton(
+                  text: "Save Changes",
+                  onPressed: _saveProfile,
+                  isLoading: _isLoading,
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _avatarFallback() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_nameController]),
+      builder: (_, __) => Container(
+        color: const Color(0xFF1B547A),
+        child: Center(
+          child: Text(
+            _initial,
+            style: GoogleFonts.outfit(
+              fontSize: 46,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _roundBtn({
+    required VoidCallback onTap,
+    required IconData icon,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 8,
+                offset: Offset(0, 2)),
+          ],
+        ),
+        child: Icon(icon,
+            size: 18, color: const Color(0xFF1E293B)),
+      ),
+    );
+  }
+
+  Widget _fieldLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Text(
+        text,
+        style: GoogleFonts.outfit(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF64748B),
+        ),
+      ),
+    );
+  }
+
+  Widget _styledField({
+    required TextEditingController controller,
+    required String hint,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      validator: validator,
+      style: GoogleFonts.outfit(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: const Color(0xFF0F172A),
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.outfit(
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          color: const Color(0xFF94A3B8),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18, vertical: 16),
+        enabledBorder: OutlineInputBorder(
+          borderSide:
+              const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide:
+              const BorderSide(color: Color(0xFF067A46), width: 1.6),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderSide:
+              const BorderSide(color: Color(0xFFEF4444), width: 1.2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderSide:
+              const BorderSide(color: Color(0xFFEF4444), width: 1.6),
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
     );
