@@ -14,61 +14,136 @@ import 'help_support_screen.dart';
 import 'about_app_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool showBackButton;
+  const ProfileScreen({super.key, this.showBackButton = false});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  late final Future<Map<String, dynamic>?> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = getProfile();
+  }
+
   Future<Map<String, dynamic>?> getProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return null;
+    final String userEmail = user?.email ?? '';
+    final String userPhone = user?.phone ?? '';
+    final dynamic metadata = user?.userMetadata;
 
-    if (MockDatabaseService.offlineProfile != null) {
-      return MockDatabaseService.offlineProfile;
-    }
+    final String metaAvatar = metadata is Map
+        ? ((metadata['avatar_url'] as String?) ?? '').trim()
+        : '';
+    final String derivedName = metadata is Map
+        ? ((metadata['full_name'] as String?) ??
+                metadata['name'] as String? ??
+                '')
+            .trim()
+        : '';
 
-    final fallbackName = user.userMetadata?['full_name'] ??
-        (user.email != null && user.email!.contains('@')
-            ? user.email!.split('@').first
-            : 'User');
+    final String defaultName = derivedName.isNotEmpty
+        ? derivedName
+        : userEmail.contains('@')
+            ? userEmail.split('@').first
+            : 'User';
 
-    final fallbackProfile = {
-      'id': user.id,
-      'full_name': fallbackName,
-      'email': user.email ?? '',
-      'phone': user.phone ?? '+92 300 1234567',
+    final fallbackProfile = <String, dynamic>{
+      'id': user?.id ?? 'local',
+      'full_name': defaultName,
+      'email': userEmail.isEmpty ? 'user@email.com' : userEmail,
+      'phone': userPhone.isEmpty ? '' : userPhone,
       'bio': '',
-      'avatar_url': '',
+      'avatar_url': metaAvatar,
       'gender': 'Other',
       'location': '',
       'emergency_contact_name': '',
       'emergency_contact_phone': '',
     };
 
+    final Map<String, dynamic> offline =
+        MockDatabaseService.offlineProfile != null
+            ? Map<String, dynamic>.from(MockDatabaseService.offlineProfile!)
+            : <String, dynamic>{};
+
+    if (offline.isNotEmpty) {
+      debugPrint("getProfile: using offline profile. avatar_url=${offline['avatar_url']}");
+      if (offline['avatar_url'] == null ||
+          offline['avatar_url'].toString().trim().isEmpty) {
+        offline['avatar_url'] = metaAvatar;
+      }
+      if (offline['full_name'] == null ||
+          offline['full_name'].toString().trim().isEmpty) {
+        offline['full_name'] = defaultName;
+      }
+      if (offline['email'] == null ||
+          offline['email'].toString().trim().isEmpty) {
+        offline['email'] = fallbackProfile['email'];
+      }
+      return offline;
+    }
+
+    if (user == null) {
+      debugPrint("getProfile: user null, using fallback avatar=${fallbackProfile['avatar_url']}");
+      return fallbackProfile;
+    }
+
     try {
       final data = await Supabase.instance.client
           .from('profiles')
           .select()
           .eq('id', user.id)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 10));
 
-      if (data != null) return data;
+      if (data != null) {
+        final String dbName =
+            (data['full_name'] as String? ?? '').toString().trim();
+        final String dbPhone =
+            (data['phone'] as String? ?? '').toString().trim();
+        final String dbEmail =
+            (data['email'] as String? ?? '').toString().trim();
+        final String dbAvatar =
+            (data['avatar_url'] as String? ?? '').toString().trim();
+
+        if (dbName.isEmpty) data['full_name'] = defaultName;
+        if (dbEmail.isEmpty && userEmail.isNotEmpty) data['email'] = userEmail;
+        if (dbPhone.isEmpty && userPhone.isNotEmpty) data['phone'] = userPhone;
+        if (dbAvatar.isEmpty && metaAvatar.isNotEmpty) {
+          data['avatar_url'] = metaAvatar;
+        }
+
+        debugPrint("getProfile: loaded from DB. avatar_url=${data['avatar_url']}");
+
+        MockDatabaseService.updateOfflineProfile(
+            Map<String, dynamic>.from(data));
+
+        return data;
+      }
 
       try {
+        debugPrint("getProfile: DB row missing, upserting default with avatar=$metaAvatar");
         await Supabase.instance.client.from('profiles').upsert({
           'id': user.id,
-          'full_name': fallbackName,
-          'email': user.email ?? '',
-          'phone': user.phone ?? '+92 300 1234567',
-        });
+          'full_name': fallbackProfile['full_name'],
+          'email': fallbackProfile['email'],
+          'phone': fallbackProfile['phone'],
+          'avatar_url': fallbackProfile['avatar_url'],
+        }).timeout(const Duration(seconds: 10));
 
         final newData = await Supabase.instance.client
             .from('profiles')
             .select()
             .eq('id', user.id)
-            .single();
+            .single()
+            .timeout(const Duration(seconds: 10));
+
+        MockDatabaseService.updateOfflineProfile(
+            Map<String, dynamic>.from(newData));
 
         return newData;
       } catch (dbErr) {
@@ -236,7 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: FutureBuilder<Map<String, dynamic>?>(
-        future: getProfile(),
+        future: _profileFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -244,40 +319,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: Color(0xFF067A46)));
           }
 
-          if (!snapshot.hasData) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.person_off_rounded,
-                        size: 40, color: Colors.grey[300]),
-                  ),
-                  const SizedBox(height: 16),
-                  Text("Unable to load profile",
-                      style: GoogleFonts.outfit(
-                          color: const Color(0xFF64748B), fontSize: 15)),
-                ],
-              ),
-            );
+          if (snapshot.hasError) {
+            debugPrint("Profile snapshot error: ${snapshot.error}");
           }
 
-          final profile = snapshot.data!;
-          final name = profile['full_name'] ?? 'Ali Raza';
-          final email = (profile['email'] as String? ?? 'ali.raza@email.com')
-              .trim()
-              .isEmpty
-              ? 'ali.raza@email.com'
-              : (profile['email'] as String);
+          final user = Supabase.instance.client.auth.currentUser;
+          final rawMetaName = (user?.userMetadata is Map)
+              ? (((user!.userMetadata as Map)['full_name'] as String?) ??
+                      ((user.userMetadata as Map)['name'] as String?) ??
+                      '')
+                  .trim()
+              : '';
+          final metaEmail = user?.email ?? '';
+          final String metaName = rawMetaName.isNotEmpty
+              ? rawMetaName
+              : metaEmail.contains('@')
+                  ? metaEmail.split('@').first
+                  : 'User';
+
+          final Map<String, dynamic> profile = snapshot.data ??
+              <String, dynamic>{
+                'full_name': metaName,
+                'email': metaEmail.isEmpty ? 'user@email.com' : metaEmail,
+                'phone': user?.phone ?? '',
+                'avatar_url': '',
+              };
+
+          final pName = (profile['full_name'] as String? ?? metaName)
+              .toString()
+              .trim();
+          final name = pName.isEmpty ? metaName : pName;
+          final rawEmail =
+              (profile['email'] as String? ?? metaEmail).toString().trim();
+          final email = rawEmail.isEmpty
+              ? (metaEmail.isEmpty ? 'user@email.com' : metaEmail)
+              : rawEmail;
           final rawPhone = (profile['phone'] as String? ?? '').toString().trim();
-          final phone = rawPhone.isEmpty ? '+92 300 1234567' : rawPhone;
-          final avatarUrl = profile['avatar_url'] as String? ?? '';
+          final phone = rawPhone.isEmpty ? 'Not provided' : rawPhone;
+          final rawAvatar =
+              (profile['avatar_url'] as String? ?? '').toString().trim();
+          final String metaAvatar2 = (user?.userMetadata is Map)
+              ? (((user!.userMetadata as Map)['avatar_url'] as String?) ?? '')
+                  .trim()
+              : '';
+          final avatarUrl =
+              rawAvatar.isNotEmpty ? rawAvatar : metaAvatar2;
+          debugPrint(
+              "Profile build: rawAvatar=$rawAvatar metaAvatar=$metaAvatar2 finalAvatar=$avatarUrl");
           final initial =
               name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
@@ -289,17 +377,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.maybePop(context),
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Color(0xFF1E293B),
-                          size: 24,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                            minWidth: 40, minHeight: 40),
-                      ),
+                      if (widget.showBackButton)
+                        IconButton(
+                          onPressed: () => Navigator.maybePop(context),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Color(0xFF1E293B),
+                            size: 24,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                              minWidth: 40, minHeight: 40),
+                        )
+                      else
+                        const SizedBox(width: 40, height: 40),
                       const Expanded(child: SizedBox()),
                       const SizedBox(width: 40),
                     ],
@@ -378,14 +469,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.edit_rounded,
                     title: 'Edit Profile',
                     onTap: () async {
+                      final Map<String, dynamic> currentData =
+                          Map<String, dynamic>.from(profile);
                       final didUpdate = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              EditProfileScreen(currentProfile: profile),
+                              EditProfileScreen(currentProfile: currentData),
                         ),
                       );
-                      if (didUpdate == true && mounted) setState(() {});
+                      if (didUpdate == true && mounted) {
+                        setState(() {
+                          _profileFuture = getProfile();
+                        });
+                      }
                     },
                   ),
                   const SizedBox(height: 6),
@@ -482,31 +579,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _roundBtn({
-    required VoidCallback onTap,
-    required IconData icon,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 8,
-                offset: Offset(0, 2)),
-          ],
-        ),
-        child: Icon(icon,
-            size: 18, color: const Color(0xFF1E293B)),
-      ),
-    );
-  }
-
   Widget _tile({
     required IconData icon,
     required String title,
@@ -520,29 +592,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap();
         },
         borderRadius: BorderRadius.circular(14),
-        splashColor: const Color(0xFF067A46).withValues(alpha: 0.05),
+        splashColor: const Color(0xFF0F172A).withValues(alpha: 0.04),
         highlightColor:
-            const Color(0xFF067A46).withValues(alpha: 0.025),
+            const Color(0xFF0F172A).withValues(alpha: 0.02),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
           child: Row(
             children: [
               Icon(icon,
-                  size: 28, color: const Color(0xFF1E293B)),
-              const SizedBox(width: 18),
+                  size: 26, color: const Color(0xFF1E293B)),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   title,
                   style: GoogleFonts.outfit(
-                    fontSize: 17,
+                    fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1E293B),
+                    color: const Color(0xFF0F172A),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              const Icon(Icons.chevron_right_rounded,
-                  size: 22, color: Color(0xFF94A3B8)),
+              const Icon(Icons.arrow_forward_ios_rounded,
+                  size: 18, color: Color(0xFF94A3B8)),
             ],
           ),
         ),

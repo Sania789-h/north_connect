@@ -37,6 +37,7 @@ class _SignupScreenState extends State<SignupScreen> {
       final response = await authService.signUp(
         email: email,
         password: password,
+        name: name,
       );
 
       final user = response.user;

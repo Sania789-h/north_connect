@@ -37,12 +37,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    final user = Supabase.instance.client.auth.currentUser;
+    final metaName = user?.userMetadata is Map
+        ? (((user!.userMetadata as Map)['full_name'] as String?) ??
+                ((user.userMetadata as Map)['name'] as String?) ??
+                '')
+            .trim()
+        : '';
+    final fallbackName = metaName.isNotEmpty
+        ? metaName
+        : (user?.email ?? '').contains('@')
+            ? user!.email!.split('@').first
+            : 'User';
+    final fallbackEmail = user?.email ?? '';
+    final fallbackPhone = user?.phone ?? '';
+
+    final profileName =
+        (widget.currentProfile['full_name'] as String? ?? '').trim();
+    final profileEmail =
+        (widget.currentProfile['email'] as String? ?? '').trim();
+    final profilePhone =
+        (widget.currentProfile['phone'] as String? ?? '').trim();
+
     _nameController = TextEditingController(
-        text: widget.currentProfile['full_name'] ?? 'Ali Raza');
+        text: profileName.isNotEmpty ? profileName : fallbackName);
     _emailController = TextEditingController(
-        text: widget.currentProfile['email'] ?? 'ali.raza@email.com');
+        text: profileEmail.isNotEmpty ? profileEmail : fallbackEmail);
     _phoneController = TextEditingController(
-        text: widget.currentProfile['phone'] ?? '+92 300 1234567');
+        text: profilePhone.isNotEmpty ? profilePhone : fallbackPhone);
     _selectedAvatarUrl = widget.currentProfile['avatar_url'] as String? ?? '';
   }
 
@@ -181,17 +203,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           widget.currentProfile['emergency_contact_phone'] ?? '',
     };
 
+    debugPrint("_saveProfile: avatar_url=$_selectedAvatarUrl");
+
     try {
       if (currentUser != null) {
-        await Supabase.instance.client
-            .from('profiles')
-            .upsert(updatedProfile);
+        await Future.wait([
+          Supabase.instance.client
+              .from('profiles')
+              .upsert(Map<String, dynamic>.from(updatedProfile))
+              .timeout(const Duration(seconds: 10)),
+          Supabase.instance.client.auth
+              .updateUser(
+                UserAttributes(
+                  data: {
+                    'full_name': _nameController.text.trim(),
+                    'avatar_url': _selectedAvatarUrl,
+                  },
+                  email: _emailController.text.trim().isNotEmpty &&
+                          _emailController.text.trim().contains('@')
+                      ? _emailController.text.trim()
+                      : null,
+                ),
+              )
+              .timeout(const Duration(seconds: 10))
+              .catchError((e) {
+            debugPrint("Auth metadata update failed (non-fatal): $e");
+            return null;
+          }),
+        ]);
       }
     } catch (e) {
       debugPrint("DB upsert failed on save, writing locally: $e");
     }
 
-    MockDatabaseService.updateOfflineProfile(updatedProfile);
+    MockDatabaseService.updateOfflineProfile(
+        Map<String, dynamic>.from(updatedProfile));
+    debugPrint("MockDatabaseService updated locally with avatar=${updatedProfile['avatar_url']}");
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
