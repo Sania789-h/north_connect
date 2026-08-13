@@ -89,9 +89,20 @@ class _AddSOSScreenState extends State<AddSOSScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final inputFill = isDark ? const Color(0xFF111827) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1E293B);
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final inputBorder = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
+    final dropdownIconColor = isDark ? Colors.white : const Color(0xFF1E293B);
+
     return Scaffold(
+      backgroundColor: bg,
       appBar: AppBar(
-        title: const Text("Send SOS Alert"),
+        backgroundColor: bg,
+        foregroundColor: textPrimary,
+        title: Text("Send SOS Alert", style: TextStyle(color: textPrimary)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -99,14 +110,28 @@ class _AddSOSScreenState extends State<AddSOSScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DropdownButtonFormField<String>(
-              initialValue: selectedType,
-              decoration: const InputDecoration(
+              value: selectedType,
+              style: TextStyle(color: textPrimary),
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              iconEnabledColor: dropdownIconColor,
+              decoration: InputDecoration(
                 labelText: "Emergency Type",
+                labelStyle: TextStyle(color: textSecondary),
+                filled: true,
+                fillColor: inputFill,
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: inputBorder),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Color(0xFF067A46)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               items: emergencyTypes.map((e) {
                 return DropdownMenuItem(
                   value: e,
-                  child: Text(e),
+                  child: Text(e, style: TextStyle(color: textPrimary)),
                 );
               }).toList(),
               onChanged: (value) {
@@ -117,14 +142,28 @@ class _AddSOSScreenState extends State<AddSOSScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              initialValue: selectedLocation,
-              decoration: const InputDecoration(
+              value: selectedLocation,
+              style: TextStyle(color: textPrimary),
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              iconEnabledColor: dropdownIconColor,
+              decoration: InputDecoration(
                 labelText: "Location",
+                labelStyle: TextStyle(color: textSecondary),
+                filled: true,
+                fillColor: inputFill,
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: inputBorder),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Color(0xFF067A46)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               items: locations.map((e) {
                 return DropdownMenuItem(
                   value: e,
-                  child: Text(e),
+                  child: Text(e, style: TextStyle(color: textPrimary)),
                 );
               }).toList(),
               onChanged: (value) {
@@ -137,9 +176,21 @@ class _AddSOSScreenState extends State<AddSOSScreen> {
             TextField(
               controller: messageController,
               maxLines: 4,
-              decoration: const InputDecoration(
+              style: TextStyle(color: textPrimary),
+              decoration: InputDecoration(
                 labelText: "Emergency Details",
-                prefixIcon: Icon(Icons.description_outlined),
+                labelStyle: TextStyle(color: textSecondary),
+                prefixIcon: Icon(Icons.description_outlined, color: textSecondary),
+                filled: true,
+                fillColor: inputFill,
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: inputBorder),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Color(0xFF067A46)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
             const SizedBox(height: 32),

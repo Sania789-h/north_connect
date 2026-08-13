@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestResponse, CountOption;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/notification_model.dart';
 import '../services/mock_database_service.dart';
 import '../services/supabase_service.dart';
@@ -9,51 +9,42 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  bool _useSupabase = false;
-
-  Future<void> initialize() async {
+  // Always try Supabase first — no need to check session manually;
+  // Supabase SDK handles auth state internally.
+  bool get _useSupabase {
     try {
-      final session = SupabaseService.client.auth.currentSession;
-      _useSupabase = session != null;
-    } catch (e) {
-      _useSupabase = false;
+      return SupabaseService.client.auth.currentUser != null;
+    } catch (_) {
+      return false;
     }
   }
+
+  /// Call this once before using; kept for backwards-compat but now a no-op.
+  Future<void> initialize() async {}
 
   Future<void> showNotification({
     required String title,
     required String body,
   }) async {
-    debugPrint("Notification");
-    debugPrint("Title: $title");
-    debugPrint("Body: $body");
+    debugPrint('Notification — Title: $title | Body: $body');
   }
 
+  // ── GET NOTIFICATIONS ─────────────────────────────────────────
   Future<List<NotificationModel>> getNotifications({String? category}) async {
     if (_useSupabase) {
       try {
-        final client = SupabaseService.client.from('notifications');
-        dynamic queryResult;
+        final userId = SupabaseService.client.auth.currentUser!.id;
+        var query = SupabaseService.client
+            .from('notifications')
+            .select()
+            .eq('user_id', userId);
 
         if (category != null && category != 'All') {
-          queryResult = await client
-              .select()
-              .eq('category', category)
-              .order('created_at', ascending: false);
-        } else {
-          queryResult = await client
-              .select()
-              .order('created_at', ascending: false);
+          query = query.eq('category', category);
         }
 
-        List<dynamic> rows;
-        if (queryResult is List) {
-          rows = queryResult;
-        } else if (queryResult?.data is List) {
-          rows = queryResult.data as List<dynamic>;
-        } else {
-          rows = const [];
-        }
+        final List<dynamic> rows =
+            await query.order('created_at', ascending: false);
 
         return rows
             .map((e) => NotificationModel.fromMap(e as Map<String, dynamic>))
@@ -65,26 +56,17 @@ class NotificationService {
     return MockDatabaseService.getNotificationsByCategory(category);
   }
 
+  // ── UNREAD COUNT ──────────────────────────────────────────────
   Future<int> getUnreadCount() async {
     if (_useSupabase) {
       try {
-        final dynamic resp = await SupabaseService.client
+        final userId = SupabaseService.client.auth.currentUser!.id;
+        final List<dynamic> rows = await SupabaseService.client
             .from('notifications')
             .select()
-            .eq('is_read', false)
-            .count(CountOption.exact);
-
-        if (resp is int) return resp;
-        if (resp is PostgrestResponse) {
-          final int c = resp.count;
-          if (c > 0) return c;
-          final d = resp.data;
-          if (d is List) return d.length;
-        }
-        final dyn = resp as dynamic;
-        if (dyn?.count is int) return dyn.count as int;
-        if (dyn?.data is List) return (dyn.data as List).length;
-        if (resp is List) return resp.length;
+            .eq('user_id', userId)
+            .eq('is_read', false);
+        return rows.length;
       } catch (e) {
         debugPrint('Supabase getUnreadCount error: $e');
       }
@@ -92,6 +74,7 @@ class NotificationService {
     return MockDatabaseService.unreadNotificationCount;
   }
 
+  // ── MARK AS READ ──────────────────────────────────────────────
   Future<void> markAsRead(String id) async {
     if (_useSupabase) {
       try {
@@ -106,17 +89,18 @@ class NotificationService {
     MockDatabaseService.markNotificationAsRead(id);
   }
 
+  // ── MARK ALL READ ─────────────────────────────────────────────
   Future<void> markAllAsRead() async {
     if (_useSupabase) {
       try {
         final userId = SupabaseService.client.auth.currentUser?.id;
-        dynamic query = SupabaseService.client
-            .from('notifications')
-            .update({'is_read': true}).eq('is_read', false);
         if (userId != null) {
-          query = query.eq('user_id', userId);
+          await SupabaseService.client
+              .from('notifications')
+              .update({'is_read': true})
+              .eq('user_id', userId)
+              .eq('is_read', false);
         }
-        await query;
         return;
       } catch (e) {
         debugPrint('Supabase markAllAsRead error: $e');
@@ -125,6 +109,7 @@ class NotificationService {
     MockDatabaseService.markAllNotificationsAsRead();
   }
 
+  // ── DELETE ────────────────────────────────────────────────────
   Future<void> deleteNotification(String id) async {
     if (_useSupabase) {
       try {
@@ -140,14 +125,13 @@ class NotificationService {
     MockDatabaseService.deleteNotification(id);
   }
 
+  // ── ADD NOTIFICATION ──────────────────────────────────────────
   Future<void> addNotification(NotificationModel notification) async {
     if (_useSupabase) {
       try {
         final userId = SupabaseService.client.auth.currentUser?.id;
-        final map = notification.toMap();
-        if (userId != null) {
-          map['user_id'] = userId;
-        }
+        final map = notification.toMap()..remove('id');
+        if (userId != null) map['user_id'] = userId;
         await SupabaseService.client.from('notifications').insert(map);
         return;
       } catch (e) {

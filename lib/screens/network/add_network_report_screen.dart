@@ -63,9 +63,11 @@ class _AddNetworkReportScreenState
     });
 
     try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
       await Supabase.instance.client
           .from('network_reports')
           .insert({
+        if (userId != null) 'user_id': userId,
         'area': selectedArea,
         'network_name': selectedProvider,
         'signal_strength': selectedSignal,
@@ -74,11 +76,12 @@ class _AddNetworkReportScreenState
       });
 
       if (mounted) {
-        Helpers.showSnackBar(context, "Network report submitted");
+        Helpers.showSnackBar(context, "Network report submitted successfully!");
         Navigator.pop(context);
       }
     } catch (e) {
-      debugPrint("Supabase network insert failed, saving locally: $e");
+      debugPrint("Supabase network insert failed: $e");
+      // Save locally as offline fallback
       MockDatabaseService.addNetwork({
         'area': selectedArea,
         'network_name': selectedProvider,
@@ -88,7 +91,7 @@ class _AddNetworkReportScreenState
       });
 
       if (mounted) {
-        Helpers.showSnackBar(context, "Offline Mode: Report saved locally!");
+        Helpers.showSnackBar(context, "Offline: Report saved locally!");
         Navigator.pop(context);
       }
     } finally {

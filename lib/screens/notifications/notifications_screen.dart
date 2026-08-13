@@ -123,6 +123,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _showDetailsBottomSheet(NotificationModel n) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final handleColor = isDark ? const Color(0xFF475569) : Colors.grey[300];
+
     final catInfo = _categoryConfig(n.category);
     showModalBottomSheet(
       context: context,
@@ -134,9 +138,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         minChildSize: 0.5,
         maxChildSize: 0.92,
         builder: (_, controller) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          decoration: BoxDecoration(
+            color: sheetBg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             children: [
@@ -145,7 +149,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 48,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: handleColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -263,12 +267,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      _buildInfoRow(Icons.category_rounded, 'Category', n.category),
+                      _buildInfoRow(Icons.category_rounded, 'Category', n.category, isDark, sheetBg),
                       const SizedBox(height: 12),
                       _buildInfoRow(
                         Icons.access_time_rounded,
                         'Received',
                         _formatDateTimeFull(n.createdAt),
+                        isDark,
+                        sheetBg,
                       ),
                       const SizedBox(height: 12),
                       _buildInfoRow(
@@ -277,6 +283,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             : Icons.mark_email_unread_rounded,
                         'Status',
                         n.isRead ? 'Read' : 'Unread',
+                        isDark,
+                        sheetBg,
                         statusColor: n.isRead ? AppColors.success : AppColors.warning,
                       ),
                       const SizedBox(height: 32),
@@ -291,13 +299,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {Color? statusColor}) {
+  Widget _buildInfoRow(IconData icon, String label, String value, bool isDark, Color sheetBg, {Color? statusColor}) {
+    final rowBorderColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF1F5F9);
+    final innerIconBg = isDark ? const Color(0xFF111827) : AppColors.background;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: sheetBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        border: Border.all(color: rowBorderColor),
       ),
       child: Row(
         children: [
@@ -305,7 +316,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: innerIconBg,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, size: 18, color: AppColors.primary),
@@ -342,19 +353,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F2C59);
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final iconBtnBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final btnBorderColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF1F5F9);
+    final chipUnselectedBorder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final chipUnselectedText = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
+    final tertiaryText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8);
+    final timeTextColor = isDark ? const Color(0xFF94A3B8) : Colors.grey[400];
+    final unreadCardBg = isDark ? const Color(0xFF052E1C) : const Color(0xFFF0FDF4);
+    final unreadCardBorder = isDark ? AppColors.primary.withValues(alpha: 0.2) : AppColors.primary.withValues(alpha: 0.08);
+    final cardBorderColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF1F5F9);
+    final cardShadow = isDark ? Colors.black.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.03);
+    final moreIconColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: bg,
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
-            _buildCategoryChips(),
+            _buildHeader(isDark, cardBg, textPrimary, textSecondary, iconBtnBg, btnBorderColor, tertiaryText),
+            _buildCategoryChips(isDark, cardBg, chipUnselectedBorder, chipUnselectedText),
             const SizedBox(height: 4),
             Expanded(
               child: _isLoading
                   ? const Center(child: LoadingWidget())
                   : _notifications.isEmpty
-                      ? _buildEmptyState()
+                      ? _buildEmptyState(isDark, textPrimary, textSecondary)
                       : RefreshIndicator(
                           onRefresh: _loadAll,
                           color: AppColors.primary,
@@ -364,7 +392,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 12),
                             itemBuilder: (ctx, i) =>
-                                _buildNotificationCard(_notifications[i]),
+                                _buildNotificationCard(_notifications[i], isDark, cardBg, unreadCardBg, unreadCardBorder, cardBorderColor, cardShadow, moreIconColor, timeTextColor),
                           ),
                         ),
             ),
@@ -374,7 +402,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isDark, Color cardBg, Color textPrimary, Color textSecondary, Color iconBtnBg, Color btnBorderColor, Color tertiaryText) {
+    final iconColor = isDark ? Colors.white : const Color(0xFF0F2C59);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
       child: Row(
@@ -382,15 +412,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           IconButton(
             onPressed: () => Helpers.pop(context),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
+              backgroundColor: iconBtnBg,
               padding: const EdgeInsets.all(10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
-                side: const BorderSide(color: Color(0xFFF1F5F9)),
+                side: BorderSide(color: btnBorderColor),
               ),
             ),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                size: 18, color: Color(0xFF0F2C59)),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                size: 18, color: iconColor),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -402,7 +432,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F2C59),
+                    color: textPrimary,
                   ),
                 ),
                 Text(
@@ -412,7 +442,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF64748B),
+                    color: textSecondary,
                   ),
                 ),
               ],
@@ -425,11 +455,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               style: IconButton.styleFrom(
                 backgroundColor: _unreadCount > 0
                     ? AppColors.primary.withValues(alpha: 0.08)
-                    : Colors.white,
+                    : iconBtnBg,
                 padding: const EdgeInsets.all(10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
-                  side: const BorderSide(color: Color(0xFFF1F5F9)),
+                  side: BorderSide(color: btnBorderColor),
                 ),
               ),
               icon: Icon(
@@ -437,7 +467,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 size: 22,
                 color: _unreadCount > 0
                     ? AppColors.primary
-                    : const Color(0xFF94A3B8),
+                    : tertiaryText,
               ),
             ),
           ),
@@ -446,7 +476,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildCategoryChips() {
+  Widget _buildCategoryChips(bool isDark, Color cardBg, Color unselectedBorder, Color unselectedText) {
     return SizedBox(
       height: 40,
       child: ListView.separated(
@@ -471,10 +501,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: isSelected ? catColor : Colors.white,
+                color: isSelected ? catColor : cardBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? catColor : const Color(0xFFE2E8F0),
+                  color: isSelected ? catColor : unselectedBorder,
                 ),
                 boxShadow: isSelected
                     ? [
@@ -500,7 +530,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? Colors.white : const Color(0xFF475569),
+                      color: isSelected ? Colors.white : unselectedText,
                     ),
                   ),
                   if (isSelected || count > 0) ...[
@@ -533,7 +563,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildNotificationCard(NotificationModel n) {
+  Widget _buildNotificationCard(NotificationModel n, bool isDark, Color cardBg, Color unreadBg, Color unreadBorder, Color cardBorder, Color cardShadow, Color moreIcon, Color? timeColor) {
     final catConfig = _categoryConfig(n.category);
     return Material(
       color: Colors.transparent,
@@ -566,16 +596,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: n.isRead ? Colors.white : const Color(0xFFF0FDF4),
+              color: n.isRead ? cardBg : unreadBg,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: n.isRead
-                    ? const Color(0xFFF1F5F9)
-                    : AppColors.primary.withValues(alpha: 0.08),
+                    ? cardBorder
+                    : unreadBorder,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
+                  color: cardShadow,
                   blurRadius: 12,
                   offset: const Offset(0, 2),
                 ),
@@ -683,10 +713,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 ),
                               ),
                             ],
-                            child: const Icon(
+                            child: Icon(
                               Icons.more_vert_rounded,
                               size: 20,
-                              color: Color(0xFF94A3B8),
+                              color: moreIcon,
                             ),
                           ),
                         ],
@@ -721,7 +751,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           Icon(
                             Icons.access_time_rounded,
                             size: 12,
-                            color: Colors.grey[400],
+                            color: timeColor,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -729,7 +759,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             style: GoogleFonts.outfit(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: Colors.grey[400],
+                              color: timeColor,
                             ),
                           ),
                         ],
@@ -745,7 +775,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDark, Color textPrimary, Color textSecondary) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -781,7 +811,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               style: GoogleFonts.outfit(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF0F2C59),
+                color: textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -790,7 +820,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
                 fontSize: 13,
-                color: const Color(0xFF64748B),
+                color: textSecondary,
                 height: 1.4,
               ),
             ),
@@ -828,7 +858,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────
   _CatConfig _categoryConfig(String category) {
     switch (category) {
       case 'Emergency Alert':

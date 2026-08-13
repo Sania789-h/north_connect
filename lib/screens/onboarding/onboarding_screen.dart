@@ -75,34 +75,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final mintCircle = isDark ? const Color(0xFF112E20) : const Color(0xFFE0F5E6);
+    final indicatorInactive = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
     final isLastPage = _currentIndex == _items.length - 1;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bg,
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar: Skip Button
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: _navigateToLogin,
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF475569),
+                    foregroundColor: textSecondary,
                     textStyle: GoogleFonts.outfit(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   child: const Text('Skip'),
                 ),
               ),
             ),
-
-            // Middle: PageView for Onboarding Content
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -114,110 +116,122 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
                 itemBuilder: (context, index) {
                   final item = _items[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 28.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Illustration Image
-                        SizedBox(
-                          height: screenSize.height * 0.35,
-                          width: screenSize.width * 0.85,
-                          child: Image.asset(
-                            item.image,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.image_outlined,
-                                size: 120,
-                                color: Color(0xFF067A46),
-                              );
-                            },
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final availableWidth = constraints.maxWidth;
+                      final availableHeight = constraints.maxHeight;
+                      final maxCircleByWidth = availableWidth;
+                      final maxCircleByHeight = availableHeight * 0.52;
+                      final safeCircleSize = maxCircleByWidth < maxCircleByHeight
+                          ? maxCircleByWidth
+                          : maxCircleByHeight;
+                      final spacing = (availableHeight * 0.04).clamp(12.0, 28.0);
+                      final titleSize = (availableHeight * 0.062).clamp(20.0, 26.0);
+                      final descSize = (availableHeight * 0.036).clamp(13.0, 15.0);
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                        child: SizedBox(
+                          height: availableHeight,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: safeCircleSize,
+                                height: safeCircleSize,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: mintCircle,
+                                ),
+                                child: ClipOval(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Image.asset(
+                                      item.image,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Icon(
+                                          Icons.image_outlined,
+                                          size: 80,
+                                          color: Color(0xFF067A46),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: spacing),
+                              Text(
+                                item.title,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.outfit(
+                                  fontSize: titleSize,
+                                  fontWeight: FontWeight.w800,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                child: Text(
+                                  item.description,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: descSize,
+                                    fontWeight: FontWeight.w400,
+                                    color: textSecondary,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-
-                        SizedBox(height: screenSize.height * 0.04),
-
-                        // Title
-                        Text(
-                          item.title,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.outfit(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0F2C59), // Dark Blue Navy
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Description
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                          child: Text(
-                            item.description,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.outfit(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF64748B), // Slate Blue Grey
-                              height: 1.45,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
               ),
             ),
-
-            // Bottom Section: Dots Indicator & Next / Get Started Button
             Padding(
               padding: const EdgeInsets.only(
-                left: 28.0,
-                right: 28.0,
-                bottom: 28.0,
-                top: 12.0,
+                left: 32.0,
+                right: 32.0,
+                bottom: 32.0,
+                top: 8.0,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Custom Indicator Dots
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(_items.length, (index) {
                       final isActive = index == _currentIndex;
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                        width: isActive ? 22.0 : 8.0,
-                        height: 8.0,
+                        margin: const EdgeInsets.symmetric(horizontal: 3.5),
+                        width: isActive ? 20.0 : 7.0,
+                        height: 7.0,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4.0),
                           color: isActive
-                              ? const Color(0xFF067A46) // Forest Green
-                              : const Color(0xFFCBD5E1), // Soft Grey
+                              ? const Color(0xFF067A46)
+                              : indicatorInactive,
                         ),
                       );
                     }),
                   ),
-
-                  const SizedBox(height: 32),
-
-                  // Next / Get Started Button
+                  const SizedBox(height: 36),
                   SizedBox(
                     width: double.infinity,
-                    height: 54,
+                    height: 56,
                     child: ElevatedButton(
                       onPressed: _onNextPressed,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF067A46), // Primary Green
+                        backgroundColor: const Color(0xFF067A46),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14.0),
+                          borderRadius: BorderRadius.circular(18.0),
                         ),
                       ),
                       child: Row(
@@ -227,14 +241,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             isLastPage ? 'Get Started' : 'Next',
                             style: GoogleFonts.outfit(
                               fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.4,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           if (!isLastPage) ...[
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 10),
                             const Icon(
-                              Icons.arrow_forward_rounded,
+                              Icons.arrow_forward,
                               size: 20,
                             ),
                           ],

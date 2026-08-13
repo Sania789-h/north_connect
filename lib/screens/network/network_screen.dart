@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// ── 1. Custom Vector Logos ──
-
 class ScomLogo extends StatelessWidget {
   const ScomLogo({super.key});
 
@@ -79,8 +77,6 @@ class TelenorLogo extends StatelessWidget {
   }
 }
 
-// ── 2. Network Screen ──
-
 class NetworkScreen extends StatefulWidget {
   const NetworkScreen({super.key});
 
@@ -91,60 +87,74 @@ class NetworkScreen extends StatefulWidget {
 class _NetworkScreenState extends State<NetworkScreen> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F2C59);
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0x0A000000);
+    final dividerColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF1F5F9);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFEEF2F6);
+    final iconColor = isDark ? Colors.white : const Color(0xFF0F2C59);
+    final inactiveBarColor = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
+    final handleColor = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: bg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // ── Back Button ──
               Row(
                 children: [
                   if (Navigator.canPop(context))
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.arrow_back_ios_new_rounded,
                         size: 20,
-                        color: Color(0xFF0F2C59),
+                        color: iconColor,
                       ),
                     ),
                 ],
               ),
               const SizedBox(height: 4),
 
-              // Title
               Text(
                 'Network',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0F2C59),
+                  color: textPrimary,
                 ),
               ),
               const SizedBox(height: 6),
 
-              // Subtitle
               Text(
                 'Check real-time status of all\nmajor networks.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
                   fontSize: 14,
-                  color: const Color(0xFF64748B),
+                  color: textSecondary,
                   height: 1.4,
                 ),
               ),
               const SizedBox(height: 28),
 
-              // 1. SCOM
               _buildCarrierCard(
                 name: 'SCOM',
                 status: 'Good',
                 signalBars: 4,
                 logoWidget: const ScomLogo(),
+                isDark: isDark,
+                cardBg: cardBg,
+                shadowColor: shadowColor,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                inactiveBarColor: inactiveBarColor,
                 onTap: () => _showCarrierDetailsModal(
                   context,
                   name: 'SCOM',
@@ -153,16 +163,27 @@ class _NetworkScreenState extends State<NetworkScreen> {
                   coverage: '98% 4G Coverage',
                   speed: '35 Mbps',
                   areas: 'Gilgit, Hunza, Skardu, Nagar',
+                  isDark: isDark,
+                  sheetBg: cardBg,
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                  dividerColor: dividerColor,
+                  handleColor: handleColor,
                 ),
               ),
               const SizedBox(height: 14),
 
-              // 2. Jazz
               _buildCarrierCard(
                 name: 'Jazz',
                 status: 'Good',
                 signalBars: 4,
                 logoWidget: const JazzLogo(),
+                isDark: isDark,
+                cardBg: cardBg,
+                shadowColor: shadowColor,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                inactiveBarColor: inactiveBarColor,
                 onTap: () => _showCarrierDetailsModal(
                   context,
                   name: 'Jazz',
@@ -171,16 +192,27 @@ class _NetworkScreenState extends State<NetworkScreen> {
                   coverage: '92% 4G Coverage',
                   speed: '28 Mbps',
                   areas: 'Gilgit City, Skardu, Chilas',
+                  isDark: isDark,
+                  sheetBg: cardBg,
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                  dividerColor: dividerColor,
+                  handleColor: handleColor,
                 ),
               ),
               const SizedBox(height: 14),
 
-              // 3. Zong 4G
               _buildCarrierCard(
                 name: 'Zong 4G',
                 status: 'Good',
                 signalBars: 4,
                 logoWidget: const ZongLogo(),
+                isDark: isDark,
+                cardBg: cardBg,
+                shadowColor: shadowColor,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                inactiveBarColor: inactiveBarColor,
                 onTap: () => _showCarrierDetailsModal(
                   context,
                   name: 'Zong 4G',
@@ -189,16 +221,27 @@ class _NetworkScreenState extends State<NetworkScreen> {
                   coverage: '90% 4G Coverage',
                   speed: '30 Mbps',
                   areas: 'Gilgit, Hunza, Ghizer',
+                  isDark: isDark,
+                  sheetBg: cardBg,
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                  dividerColor: dividerColor,
+                  handleColor: handleColor,
                 ),
               ),
               const SizedBox(height: 14),
 
-              // 4. Telenor
               _buildCarrierCard(
                 name: 'Telenor',
                 status: 'Fair',
                 signalBars: 2,
                 logoWidget: const TelenorLogo(),
+                isDark: isDark,
+                cardBg: cardBg,
+                shadowColor: shadowColor,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                inactiveBarColor: inactiveBarColor,
                 onTap: () => _showCarrierDetailsModal(
                   context,
                   name: 'Telenor',
@@ -207,6 +250,12 @@ class _NetworkScreenState extends State<NetworkScreen> {
                   coverage: '75% 3G/4G Coverage',
                   speed: '12 Mbps (Maintenance)',
                   areas: 'Gilgit, Astore, Deosai',
+                  isDark: isDark,
+                  sheetBg: cardBg,
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                  dividerColor: dividerColor,
+                  handleColor: handleColor,
                 ),
               ),
               const SizedBox(height: 24),
@@ -225,6 +274,12 @@ class _NetworkScreenState extends State<NetworkScreen> {
     required String coverage,
     required String speed,
     required String areas,
+    required bool isDark,
+    required Color sheetBg,
+    required Color textPrimary,
+    required Color textSecondary,
+    required Color dividerColor,
+    required Color handleColor,
   }) {
     final isFair = status.toLowerCase() == 'fair';
     final statusColor =
@@ -232,7 +287,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -248,7 +303,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFCBD5E1),
+                    color: handleColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -266,7 +321,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
                         style: GoogleFonts.outfit(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F2C59),
+                          color: textPrimary,
                         ),
                       ),
                       Row(
@@ -295,13 +350,13 @@ class _NetworkScreenState extends State<NetworkScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              const Divider(color: Color(0xFFF1F5F9)),
+              Divider(color: dividerColor),
               const SizedBox(height: 12),
-              _buildDetailRow(Icons.cell_tower_rounded, 'Coverage', coverage),
+              _buildDetailRow(Icons.cell_tower_rounded, 'Coverage', coverage, textSecondary, textPrimary),
               const SizedBox(height: 12),
-              _buildDetailRow(Icons.speed_rounded, 'Average Speed', speed),
+              _buildDetailRow(Icons.speed_rounded, 'Average Speed', speed, textSecondary, textPrimary),
               const SizedBox(height: 12),
-              _buildDetailRow(Icons.map_rounded, 'Key Areas', areas),
+              _buildDetailRow(Icons.map_rounded, 'Key Areas', areas, textSecondary, textPrimary),
               const SizedBox(height: 24),
             ],
           ),
@@ -310,16 +365,16 @@ class _NetworkScreenState extends State<NetworkScreen> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
+  Widget _buildDetailRow(IconData icon, String label, String value, Color iconColor, Color textPrimary, [Color? labelColor]) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: const Color(0xFF64748B)),
+        Icon(icon, size: 20, color: iconColor),
         const SizedBox(width: 12),
         Text(
           label,
           style: GoogleFonts.outfit(
             fontSize: 14,
-            color: const Color(0xFF64748B),
+            color: labelColor ?? iconColor,
           ),
         ),
         const Spacer(),
@@ -331,7 +386,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
             style: GoogleFonts.outfit(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF0F2C59),
+              color: textPrimary,
             ),
           ),
         ),
@@ -339,13 +394,18 @@ class _NetworkScreenState extends State<NetworkScreen> {
     );
   }
 
-  // ── Carrier Card Widget matching UI Mockup ──
   Widget _buildCarrierCard({
     required String name,
     required String status,
     required int signalBars,
     required Widget logoWidget,
     required VoidCallback onTap,
+    required bool isDark,
+    required Color cardBg,
+    required Color shadowColor,
+    required Color borderColor,
+    required Color textPrimary,
+    required Color inactiveBarColor,
   }) {
     final isFair = status.toLowerCase() == 'fair';
     final statusColor =
@@ -354,16 +414,16 @@ class _NetworkScreenState extends State<NetworkScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A000000),
+            color: shadowColor,
             blurRadius: 10,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: const Color(0xFFEEF2F6), width: 1.0),
+        border: Border.all(color: borderColor, width: 1.0),
       ),
       child: Material(
         color: Colors.transparent,
@@ -375,7 +435,6 @@ class _NetworkScreenState extends State<NetworkScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
               children: [
-                // Natural Logo Widget
                 SizedBox(
                   width: 56,
                   height: 40,
@@ -386,7 +445,6 @@ class _NetworkScreenState extends State<NetworkScreen> {
                 ),
                 const SizedBox(width: 12),
 
-                // Name & Status
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +454,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
                         style: GoogleFonts.outfit(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F2C59),
+                          color: textPrimary,
                           letterSpacing: 0.1,
                         ),
                       ),
@@ -413,8 +471,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
                   ),
                 ),
 
-                // Signal Bars matching screenshot
-                _buildSignalBars(signalBars, isFair),
+                _buildSignalBars(signalBars, isFair, inactiveBarColor),
               ],
             ),
           ),
@@ -423,8 +480,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
     );
   }
 
-  // Signal bars widget matching screenshot style
-  Widget _buildSignalBars(int activeBars, bool isFair) {
+  Widget _buildSignalBars(int activeBars, bool isFair, Color inactiveBarColor) {
     final activeColor =
         isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
 
@@ -437,7 +493,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
           width: 4.5,
           height: 8.0 + (index * 4.0),
           decoration: BoxDecoration(
-            color: isActive ? activeColor : const Color(0xFFCBD5E1),
+            color: isActive ? activeColor : inactiveBarColor,
             borderRadius: BorderRadius.circular(2.5),
           ),
         );

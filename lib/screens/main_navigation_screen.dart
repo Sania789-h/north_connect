@@ -31,6 +31,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final navBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final navShadow = isDark ? Colors.black.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.06);
+    final unselectedColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8);
+    final selectedColor = isDark ? const Color(0xFF22C55E) : const Color(0xFF067A46);
+
     final List<Widget> screens = [
       HomeScreen(
         onNavigateTab: (index) => _onTabSelect(index),
@@ -42,17 +49,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: bg,
       body: IndexedStack(
         index: _currentIndex,
         children: screens,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: navBg,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: navShadow,
               blurRadius: 16,
               offset: const Offset(0, -4),
             ),
@@ -64,9 +71,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             child: BottomNavigationBar(
               currentIndex: _currentIndex,
               onTap: _onTabSelect,
-              backgroundColor: Colors.white,
-              selectedItemColor: const Color(0xFF067A46),
-              unselectedItemColor: const Color(0xFF94A3B8),
+              backgroundColor: navBg,
+              selectedItemColor: selectedColor,
+              unselectedItemColor: unselectedColor,
               selectedLabelStyle: GoogleFonts.outfit(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,

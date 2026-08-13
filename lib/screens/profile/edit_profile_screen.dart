@@ -190,27 +190,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final currentUser = Supabase.instance.client.auth.currentUser;
     final updatedProfile = {
       'id': currentUser?.id ?? 'local',
-      'email': _emailController.text.trim(),
       'full_name': _nameController.text.trim(),
       'phone': _phoneController.text.trim(),
       'avatar_url': _selectedAvatarUrl,
       'bio': widget.currentProfile['bio'] ?? '',
-      'gender': widget.currentProfile['gender'] ?? 'Other',
-      'location': widget.currentProfile['location'] ?? '',
-      'emergency_contact_name':
-          widget.currentProfile['emergency_contact_name'] ?? '',
-      'emergency_contact_phone':
-          widget.currentProfile['emergency_contact_phone'] ?? '',
+      'location': widget.currentProfile['location'] ?? 'Gilgit-Baltistan',
+      // Keep email only locally for display — auth.users holds the real email
+      'email': _emailController.text.trim(),
     };
 
     debugPrint("_saveProfile: avatar_url=$_selectedAvatarUrl");
+
+    // Build the profiles table payload (no 'email' column in DB)
+    final dbPayload = <String, dynamic>{
+      'id': currentUser?.id,
+      'full_name': updatedProfile['full_name'],
+      'phone': updatedProfile['phone'],
+      'avatar_url': updatedProfile['avatar_url'],
+      'bio': updatedProfile['bio'],
+      'location': updatedProfile['location'],
+    };
 
     try {
       if (currentUser != null) {
         await Future.wait([
           Supabase.instance.client
               .from('profiles')
-              .upsert(Map<String, dynamic>.from(updatedProfile))
+              .upsert(dbPayload)
               .timeout(const Duration(seconds: 10)),
           Supabase.instance.client.auth
               .updateUser(

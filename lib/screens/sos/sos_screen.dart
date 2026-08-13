@@ -55,21 +55,27 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
       return;
     }
 
+    final darkDialog = Theme.of(context).brightness == Brightness.dark;
+    final dialogBg = darkDialog ? const Color(0xFF1E293B) : Colors.white;
+    final dialogTextPrimary = darkDialog ? Colors.white : const Color(0xFF1E293B);
+    final dialogTextSecondary = darkDialog ? const Color(0xFFCBD5E1) : const Color(0xFF4B5563);
+    final dialogCancelColor = darkDialog ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
+            backgroundColor: dialogBg,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
             title: Text(
               'Confirm SOS',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: dialogTextPrimary),
             ),
             content: Text(
               'Are you sure you want to send an SOS?',
               style: GoogleFonts.outfit(
                 fontSize: 14,
-                color: const Color(0xFF4B5563),
+                color: dialogTextSecondary,
               ),
             ),
             actions: [
@@ -78,7 +84,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                 child: Text(
                   'Cancel',
                   style: GoogleFonts.outfit(
-                    color: const Color(0xFF6B7280),
+                    color: dialogCancelColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -154,8 +160,16 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFFAFAFB);
+    final cardBorder = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFEEF1F6);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0B1F3A);
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF5D697B);
+    final iconColor = isDark ? Colors.white : const Color(0xFF0B1F3A);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bg,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -166,9 +180,9 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                 children: [
                   IconButton(
                     onPressed: () => Helpers.pop(context),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      color: Color(0xFF0B1F3A),
+                      color: iconColor,
                       size: 20,
                     ),
                   ),
@@ -178,7 +192,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0B1F3A),
+                      color: textPrimary,
                     ),
                   ),
                   const Spacer(flex: 2),
@@ -200,7 +214,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                       style: GoogleFonts.outfit(
                         fontSize: 30,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0B1F3A),
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -211,7 +225,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                         fontSize: 15,
                         height: 1.45,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFF5D697B),
+                        color: textSecondary,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -226,13 +240,13 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                       style: GoogleFonts.outfit(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF0B1F3A),
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 28),
-                    _buildLocationCard(),
+                    _buildLocationCard(cardBg: cardBg, cardBorder: cardBorder, textPrimary: textPrimary, textSecondary: textSecondary),
                     const SizedBox(height: 16),
-                    _buildContactsCard(),
+                    _buildContactsCard(cardBg: cardBg, cardBorder: cardBorder, textPrimary: textPrimary, textSecondary: textSecondary, isDark: isDark),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -245,14 +259,19 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   }
 
   // ── Cards ───────────────────────────────────────────────────
-  Widget _buildLocationCard() {
+  Widget _buildLocationCard({
+    required Color cardBg,
+    required Color cardBorder,
+    required Color textPrimary,
+    required Color textSecondary,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFB),
+        color: cardBg,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFEEF1F6)),
+        border: Border.all(color: cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,7 +281,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
             style: GoogleFonts.outfit(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0B1F3A),
+              color: textPrimary,
             ),
           ),
           const SizedBox(height: 10),
@@ -282,7 +301,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF5D697B),
+                      color: textSecondary,
                     ),
                   ),
                 ],
@@ -296,7 +315,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                 fontWeight: FontWeight.w600,
                 color: _position == null
                     ? const Color(0xFFDC2626)
-                    : const Color(0xFF5D697B),
+                    : textSecondary,
               ),
             ),
             if (_position == null && _locationError != null) ...[
@@ -315,11 +334,15 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
           _locationRow(
             icon: Icons.location_on_outlined,
             label: 'Latitude: $_latitudeText',
+            textPrimary: textPrimary,
+            textSecondary: textSecondary,
           ),
           const SizedBox(height: 12),
           _locationRow(
             icon: Icons.explore_outlined,
             label: 'Longitude: $_longitudeText',
+            textPrimary: textPrimary,
+            textSecondary: textSecondary,
           ),
         ],
       ),
@@ -329,10 +352,12 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
   Widget _locationRow({
     required IconData icon,
     required String label,
+    required Color textPrimary,
+    required Color textSecondary,
   }) {
     return Row(
       children: [
-        Icon(icon, size: 19, color: const Color(0xFF5D697B)),
+        Icon(icon, size: 19, color: textSecondary),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
@@ -340,7 +365,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
             style: GoogleFonts.outfit(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF1E2A3F),
+              color: textPrimary,
             ),
           ),
         ),
@@ -348,14 +373,20 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
     );
   }
 
-  Widget _buildContactsCard() {
+  Widget _buildContactsCard({
+    required Color cardBg,
+    required Color cardBorder,
+    required Color textPrimary,
+    required Color textSecondary,
+    required bool isDark,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(22, 24, 22, 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFB),
+        color: cardBg,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFEEF1F6)),
+        border: Border.all(color: cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +396,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
             style: GoogleFonts.outfit(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0B1F3A),
+              color: textPrimary,
             ),
           ),
           const SizedBox(height: 18),
@@ -376,8 +407,10 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
             number: '1122',
             icon: Icons.local_fire_department_rounded,
             badgeColor: const Color(0xFF0B2744),
+            textPrimary: textPrimary,
+            textSecondary: textSecondary,
           ),
-          const _Divider(),
+          _Divider(isDark: isDark),
           _contactItem(
             index: 1,
             name: 'Police',
@@ -385,8 +418,10 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
             number: '15',
             icon: Icons.local_police_rounded,
             badgeColor: const Color(0xFF1D5FED),
+            textPrimary: textPrimary,
+            textSecondary: textSecondary,
           ),
-          const _Divider(),
+          _Divider(isDark: isDark),
           _contactItem(
             index: 2,
             name: 'Edhi Ambulance',
@@ -394,6 +429,8 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
             number: '115',
             icon: Icons.local_hospital_rounded,
             badgeColor: const Color(0xFFB45309),
+            textPrimary: textPrimary,
+            textSecondary: textSecondary,
           ),
           const SizedBox(height: 10),
         ],
@@ -408,6 +445,8 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
     required String number,
     required IconData icon,
     required Color badgeColor,
+    required Color textPrimary,
+    required Color textSecondary,
   }) {
     final isCalling = _callingIndex == index;
     return InkWell(
@@ -443,7 +482,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0B1F3A),
+                      color: textPrimary,
                     ),
                   ),
                   if (subtext != null) ...[
@@ -453,7 +492,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                       style: GoogleFonts.outfit(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFF5D697B),
+                        color: textSecondary,
                       ),
                     ),
                   ],
@@ -475,7 +514,7 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
                 style: GoogleFonts.outfit(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF2E3A52),
+                  color: textPrimary,
                 ),
               ),
           ],
@@ -486,7 +525,8 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
 }
 
 class _Divider extends StatelessWidget {
-  const _Divider();
+  final bool isDark;
+  const _Divider({required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -495,7 +535,7 @@ class _Divider extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(left: 60),
         height: 1,
-        color: const Color(0xFFEDEFF4),
+        color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFEDEFF4),
       ),
     );
   }

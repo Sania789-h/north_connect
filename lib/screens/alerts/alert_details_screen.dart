@@ -67,12 +67,21 @@ class AlertDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final descText = isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155);
+    final tipText = isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155);
+    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.03);
+
     final headerColor = getHeaderColor(alert.category, alert.title);
     final icon = getCategoryIcon(alert.category, alert.title);
     final severityColor = getSeverityColor(alert.severity);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: bg,
       body: Column(
         children: [
           Container(
@@ -156,9 +165,10 @@ class AlertDetailsScreen extends StatelessWidget {
                 children: [
                   _buildInfoRow(
                     Icons.location_on_rounded,
-                    const Color(0xFF1E293B),
+                    textPrimary,
                     'Location',
                     alert.location,
+                    cardBg, shadowColor, textSecondary,
                   ),
                   const SizedBox(height: 10),
                   _buildInfoRow(
@@ -166,6 +176,7 @@ class AlertDetailsScreen extends StatelessWidget {
                     const Color(0xFFFB923C),
                     'Severity',
                     alert.severity,
+                    cardBg, shadowColor, textSecondary,
                     valueColor: severityColor,
                   ),
                   const SizedBox(height: 28),
@@ -174,7 +185,7 @@ class AlertDetailsScreen extends StatelessWidget {
                     style: GoogleFonts.outfit(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F172A),
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -183,7 +194,7 @@ class AlertDetailsScreen extends StatelessWidget {
                     style: GoogleFonts.outfit(
                       fontSize: 15,
                       fontWeight: FontWeight.w400,
-                      color: const Color(0xFF334155),
+                      color: descText,
                       height: 1.6,
                     ),
                   ),
@@ -194,7 +205,7 @@ class AlertDetailsScreen extends StatelessWidget {
                       style: GoogleFonts.outfit(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0F172A),
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -221,7 +232,7 @@ class AlertDetailsScreen extends StatelessWidget {
                               style: GoogleFonts.outfit(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
-                                color: const Color(0xFF334155),
+                                color: tipText,
                                 height: 1.5,
                               ),
                             ),
@@ -236,7 +247,7 @@ class AlertDetailsScreen extends StatelessWidget {
                     style: GoogleFonts.outfit(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F172A),
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -300,17 +311,20 @@ class AlertDetailsScreen extends StatelessWidget {
     IconData icon,
     Color iconColor,
     String label,
-    String value, {
+    String value,
+    Color cardBg,
+    Color shadowColor,
+    Color labelColor, {
     Color? valueColor,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: shadowColor,
             blurRadius: 12,
             offset: const Offset(0, 2),
           ),
@@ -329,7 +343,7 @@ class AlertDetailsScreen extends StatelessWidget {
                   style: GoogleFonts.outfit(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF64748B),
+                    color: labelColor,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -338,7 +352,7 @@ class AlertDetailsScreen extends StatelessWidget {
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: valueColor ?? const Color(0xFF0F172A),
+                    color: valueColor ?? iconColor,
                   ),
                 ),
               ],

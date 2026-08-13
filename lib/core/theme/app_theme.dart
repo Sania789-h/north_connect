@@ -3,11 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/colors.dart';
 
 class AppTheme {
-  static const Color _darkBg = const Color(0xFF0B1120);
-  static const Color _darkSurface = const Color(0xFF111827);
-  static const Color _darkCard = const Color(0xFF1E293B);
+  static const Color _darkBg = Color(0xFF0B1120);
+  static const Color _darkSurface = Color(0xFF111827);
+  static const Color _darkCard = Color(0xFF1E293B);
   static const Color _darkTextPrimary = Colors.white;
-  static const Color _darkTextSecondary = const Color(0xFFCBD5E1);
+  static const Color _darkTextSecondary = Color(0xFFCBD5E1);
 
   static ThemeData get lightTheme {
     final base = ThemeData.light();
@@ -95,6 +95,37 @@ class AppTheme {
           }
           return const Color(0xFFCBD5E1);
         }),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.cardBackground,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        titleTextStyle: GoogleFonts.outfit(
+          color: AppColors.textPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+        contentTextStyle: GoogleFonts.outfit(
+          color: AppColors.textSecondary,
+          fontSize: 15,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.cardBackground,
+        contentTextStyle: GoogleFonts.outfit(
+          color: AppColors.textPrimary,
+          fontSize: 14,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
       ),
     );
   }
@@ -187,6 +218,37 @@ class AppTheme {
         }),
       ),
       dividerColor: Colors.white.withValues(alpha: 0.06),
+      dialogTheme: DialogThemeData(
+        backgroundColor: _darkCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        titleTextStyle: GoogleFonts.outfit(
+          color: _darkTextPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+        contentTextStyle: GoogleFonts.outfit(
+          color: _darkTextSecondary,
+          fontSize: 15,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: _darkCard,
+        contentTextStyle: GoogleFonts.outfit(
+          color: _darkTextPrimary,
+          fontSize: 14,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+      ),
     );
   }
 }

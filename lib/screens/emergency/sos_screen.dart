@@ -55,10 +55,21 @@ class _SOSScreenState extends State<SOSScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : AppColors.textPrimary;
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : AppColors.textSecondary;
+    final locationTextColor = isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600;
+    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0x0A000000);
+    final cardBorder = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade200;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: bg,
       appBar: AppBar(
-        title: const Text("Emergency SOS"),
+        backgroundColor: bg,
+        foregroundColor: textPrimary,
+        title: Text("Emergency SOS", style: TextStyle(color: textPrimary)),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.error,
@@ -101,12 +112,12 @@ class _SOSScreenState extends State<SOSScreen> {
             if (alerts.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 100),
+                children: [
+                  const SizedBox(height: 100),
                   Center(
                     child: Text(
                       "No SOS Alerts Found",
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: textSecondary),
                     ),
                   ),
                 ],
@@ -121,7 +132,20 @@ class _SOSScreenState extends State<SOSScreen> {
                 final status = alert['status'] ?? 'Pending';
                 final statusColor = getStatusColor(status);
 
-                return Card(
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: shadowColor,
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                    border: isDark ? Border.all(color: cardBorder) : null,
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
@@ -147,17 +171,17 @@ class _SOSScreenState extends State<SOSScreen> {
                                   Expanded(
                                     child: Text(
                                       alert['emergency_type'] ?? 'Emergency',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.textPrimary,
+                                        color: textPrimary,
                                       ),
                                     ),
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: statusColor.withValues(alpha: 0.1),
+                                      color: statusColor.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -174,22 +198,22 @@ class _SOSScreenState extends State<SOSScreen> {
                               const SizedBox(height: 8),
                               Text(
                                 alert['message'] ?? '',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: AppColors.textSecondary,
+                                  color: textSecondary,
                                   height: 1.4,
                                 ),
                               ),
                               const SizedBox(height: 12),
                               Row(
                                 children: [
-                                  Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade500),
+                                  Icon(Icons.location_on_outlined, size: 14, color: textSecondary),
                                   const SizedBox(width: 4),
                                   Text(
                                     alert['location'] ?? '',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color: locationTextColor,
                                     ),
                                   ),
                                 ],

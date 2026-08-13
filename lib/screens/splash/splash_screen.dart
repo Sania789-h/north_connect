@@ -81,6 +81,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fallbackBg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF4F8FA);
+    final subtitleColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155);
     final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -93,7 +96,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  color: const Color(0xFFF4F8FA),
+                  color: fallbackBg,
                 );
               },
             ),
@@ -187,7 +190,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           style: GoogleFonts.outfit(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFF334155),
+                            color: subtitleColor,
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -239,4 +242,4 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
   }
-}
+}

@@ -91,12 +91,21 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
+    final subColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final cardShadow = isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0x0A000000);
+    final dividerColor = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade200;
+    final viewAllColor = isDark ? const Color(0xFF22C55E) : const Color(0xFF0F766E);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: bg,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF067A46)))
           : _error.isNotEmpty
-              ? _errorView()
+              ? _errorView(isDark, textColor, subColor)
               : RefreshIndicator(
                   onRefresh: () async {
                     _onRefreshTap();
@@ -110,15 +119,15 @@ class _HomeScreenState extends State<HomeScreen>
                           parent: BouncingScrollPhysics(),
                         ),
                         slivers: [
-                          SliverToBoxAdapter(child: _buildHeader()),
+                          SliverToBoxAdapter(child: _buildHeader(isDark, textColor, subColor)),
                           const SliverToBoxAdapter(child: SizedBox(height: 12)),
                           SliverToBoxAdapter(child: _buildMainCard()),
                           const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                          SliverToBoxAdapter(child: _buildQuickAccess()),
+                          SliverToBoxAdapter(child: _buildQuickAccess(isDark, textColor, subColor, cardBg, cardShadow, viewAllColor)),
                           const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                          SliverToBoxAdapter(child: _buildLatestAlerts()),
+                          SliverToBoxAdapter(child: _buildLatestAlerts(isDark, textColor, subColor, cardBg, cardShadow, dividerColor, viewAllColor)),
                           const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                          SliverToBoxAdapter(child: _buildNetworkStatus()),
+                          SliverToBoxAdapter(child: _buildNetworkStatus(isDark, textColor, cardBg, cardShadow, viewAllColor)),
                           const SliverToBoxAdapter(child: SizedBox(height: 20)),
                           SliverToBoxAdapter(child: _buildEmergencySOS()),
                           const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -130,35 +139,35 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _errorView() {
+  Widget _errorView(bool isDark, Color textColor, Color subColor) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded,
-                size: 52, color: Color(0xFF94A3B8)),
+            Icon(Icons.wifi_off_rounded,
+                size: 52, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
             const SizedBox(height: 12),
             Text(
               'Could not load weather',
               style: GoogleFonts.outfit(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1E293B)),
+                  color: textColor),
             ),
             const SizedBox(height: 6),
             Text(
               _error,
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
-                  fontSize: 13, color: const Color(0xFF64748B)),
+                  fontSize: 13, color: subColor),
             ),
             const SizedBox(height: 18),
             TextButton.icon(
               onPressed: _loadWeather,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
+              icon: Icon(Icons.refresh_rounded, color: isDark ? const Color(0xFF22C55E) : const Color(0xFF0F766E)),
+              label: Text('Retry', style: TextStyle(color: isDark ? const Color(0xFF22C55E) : const Color(0xFF0F766E))),
             ),
           ],
         ),
@@ -166,10 +175,10 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ─────────────────────────────────────────────
   // Header matching picture: Logo + text on left, bell + profile on right
-  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-  Widget _buildHeader() {
+  // ─────────────────────────────────────────────
+  Widget _buildHeader(bool isDark, Color textColor, Color subColor) {
     return SafeArea(
       bottom: false,
       child: Padding(
@@ -209,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen>
                     'Stay Connected, Stay Safe',
                     style: GoogleFonts.outfit(
                       fontSize: 11,
-                      color: const Color(0xFF64748B),
+                      color: subColor,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -218,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             IconButton(
               onPressed: () => widget.onNavigateTab?.call(2),
-              icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF1E293B)),
+              icon: Icon(Icons.notifications_none_rounded, color: textColor),
             ),
             GestureDetector(
               onTap: () => widget.onNavigateTab?.call(4),
@@ -227,10 +236,10 @@ class _HomeScreenState extends State<HomeScreen>
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFE2E8F0),
-                  border: Border.all(color: Colors.white, width: 2),
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  border: Border.all(color: isDark ? const Color(0xFF1E293B) : Colors.white, width: 2),
                 ),
-                child: const Icon(Icons.person, color: Color(0xFF94A3B8), size: 20),
+                child: Icon(Icons.person, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF94A3B8), size: 20),
               ),
             ),
           ],
@@ -358,9 +367,9 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ─────────────────────────────────────────────
   // Main Weather Card (Mountain BG + Temp + Stats overlay bar)
-  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ─────────────────────────────────────────────
   Widget _buildMainCard() {
     final cur = _data?.current;
     final temp = cur?.temperatureC.round().toString() ?? '18';
@@ -578,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen>
   // ─────────────────────────────────────────────
   // Section Header
   // ─────────────────────────────────────────────
-  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
+  Widget _buildSectionHeader(String title, Color textColor, Color viewAllColor, {VoidCallback? onViewAll}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -589,7 +598,7 @@ class _HomeScreenState extends State<HomeScreen>
             style: GoogleFonts.outfit(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF1E293B),
+              color: textColor,
             ),
           ),
           GestureDetector(
@@ -601,10 +610,10 @@ class _HomeScreenState extends State<HomeScreen>
                   style: GoogleFonts.outfit(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF0F766E),
+                    color: viewAllColor,
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: Color(0xFF0F766E), size: 16),
+                Icon(Icons.chevron_right_rounded, color: viewAllColor, size: 16),
               ],
             ),
           ),
@@ -616,11 +625,15 @@ class _HomeScreenState extends State<HomeScreen>
   // ─────────────────────────────────────────────
   // Quick Access
   // ─────────────────────────────────────────────
-  Widget _buildQuickAccess() {
+  Widget _buildQuickAccess(bool isDark, Color textColor, Color subColor, Color cardBg, Color cardShadow, Color viewAllColor) {
+    final qaBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final qaShadow = isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0x0A000000);
+    final qaLabel = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Quick Access', onViewAll: () => widget.onNavigateTab?.call(1)),
+        _buildSectionHeader('Quick Access', textColor, viewAllColor, onViewAll: () => widget.onNavigateTab?.call(1)),
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -631,24 +644,36 @@ class _HomeScreenState extends State<HomeScreen>
                 Icons.cloud_rounded,
                 'Weather',
                 const Color(0xFF3B82F6),
+                qaBg,
+                qaShadow,
+                qaLabel,
                 onTap: () => widget.onNavigateTab?.call(1),
               ),
               _buildQuickAccessItem(
                 Icons.warning_rounded,
                 'Alerts',
                 const Color(0xFFEF4444),
+                qaBg,
+                qaShadow,
+                qaLabel,
                 onTap: () => widget.onNavigateTab?.call(2),
               ),
               _buildQuickAccessItem(
                 Icons.cell_tower_rounded,
                 'Network',
                 const Color(0xFF22C55E),
+                qaBg,
+                qaShadow,
+                qaLabel,
                 onTap: () => widget.onNavigateTab?.call(3),
               ),
               _buildQuickAccessItem(
                 Icons.sos_rounded,
                 'SOS',
                 const Color(0xFFEF4444),
+                qaBg,
+                qaShadow,
+                qaLabel,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const SOSSenderScreen()),
@@ -658,6 +683,9 @@ class _HomeScreenState extends State<HomeScreen>
                 Icons.person_rounded,
                 'Profile',
                 const Color(0xFF8B5CF6),
+                qaBg,
+                qaShadow,
+                qaLabel,
                 onTap: () => widget.onNavigateTab?.call(4),
               ),
             ],
@@ -667,7 +695,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildQuickAccessItem(IconData icon, String label, Color color, {String? badge, VoidCallback? onTap}) {
+  Widget _buildQuickAccessItem(IconData icon, String label, Color color, Color bg, Color shadow, Color labelColor, {String? badge, VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -679,10 +707,10 @@ class _HomeScreenState extends State<HomeScreen>
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: bg,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+                  boxShadow: [
+                    BoxShadow(color: shadow, blurRadius: 10, offset: const Offset(0, 4)),
                   ],
                 ),
                 child: Icon(icon, color: color, size: 28),
@@ -716,7 +744,7 @@ class _HomeScreenState extends State<HomeScreen>
             style: GoogleFonts.outfit(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF475569),
+              color: labelColor,
             ),
           ),
         ],
@@ -727,19 +755,19 @@ class _HomeScreenState extends State<HomeScreen>
   // ─────────────────────────────────────────────
   // Latest Alerts
   // ─────────────────────────────────────────────
-  Widget _buildLatestAlerts() {
+  Widget _buildLatestAlerts(bool isDark, Color textColor, Color subColor, Color cardBg, Color cardShadow, Color dividerColor, Color viewAllColor) {
     return Column(
       children: [
-        _buildSectionHeader('Latest Alerts', onViewAll: () => widget.onNavigateTab?.call(2)),
+        _buildSectionHeader('Latest Alerts', textColor, viewAllColor, onViewAll: () => widget.onNavigateTab?.call(2)),
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: const [
-                BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+              boxShadow: [
+                BoxShadow(color: cardShadow, blurRadius: 10, offset: const Offset(0, 4)),
               ],
             ),
             child: Column(
@@ -750,24 +778,33 @@ class _HomeScreenState extends State<HomeScreen>
                   title: 'Landslide Warning',
                   location: 'Hunza, Gilgit-Baltistan',
                   timeAgo: '2h ago',
+                  textColor: textColor,
+                  subColor: subColor,
+                  chevronColor: isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1),
                   onTap: () => widget.onNavigateTab?.call(2),
                 ),
-                Divider(height: 1, color: Colors.grey.shade200, indent: 64),
+                Divider(height: 1, color: dividerColor, indent: 64),
                 _buildAlertItem(
                   icon: Icons.flood_rounded,
                   iconColor: const Color(0xFF3B82F6),
                   title: 'Flood Advisory',
                   location: 'Ghizer, Gilgit-Baltistan',
                   timeAgo: '5h ago',
+                  textColor: textColor,
+                  subColor: subColor,
+                  chevronColor: isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1),
                   onTap: () => widget.onNavigateTab?.call(2),
                 ),
-                Divider(height: 1, color: Colors.grey.shade200, indent: 64),
+                Divider(height: 1, color: dividerColor, indent: 64),
                 _buildAlertItem(
                   icon: Icons.warning_amber_rounded,
                   iconColor: const Color(0xFFF59E0B),
                   title: 'Road Closed',
                   location: 'Babusar Top, Naran Road',
                   timeAgo: '1d ago',
+                  textColor: textColor,
+                  subColor: subColor,
+                  chevronColor: isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1),
                   onTap: () => widget.onNavigateTab?.call(2),
                 ),
               ],
@@ -784,6 +821,9 @@ class _HomeScreenState extends State<HomeScreen>
     required String title,
     required String location,
     required String timeAgo,
+    required Color textColor,
+    required Color subColor,
+    required Color chevronColor,
     VoidCallback? onTap,
   }) {
     return InkWell(
@@ -812,7 +852,7 @@ class _HomeScreenState extends State<HomeScreen>
                     style: GoogleFonts.outfit(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1E293B),
+                      color: textColor,
                     ),
                   ),
                   Text(
@@ -820,7 +860,7 @@ class _HomeScreenState extends State<HomeScreen>
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF64748B),
+                      color: subColor,
                     ),
                   ),
                 ],
@@ -837,7 +877,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1), size: 16),
+                Icon(Icons.chevron_right_rounded, color: chevronColor, size: 16),
               ],
             ),
           ],
@@ -849,10 +889,13 @@ class _HomeScreenState extends State<HomeScreen>
   // ─────────────────────────────────────────────
   // Network Status
   // ─────────────────────────────────────────────
-  Widget _buildNetworkStatus() {
+  Widget _buildNetworkStatus(bool isDark, Color textColor, Color cardBg, Color cardShadow, Color viewAllColor) {
+    final nameColor = isDark ? Colors.white : const Color(0xFF334155);
+    final barBgColor = isDark ? const Color(0xFF334155) : Colors.grey.shade200;
+
     return Column(
       children: [
-        _buildSectionHeader('Network Status', onViewAll: () => widget.onNavigateTab?.call(3)),
+        _buildSectionHeader('Network Status', textColor, viewAllColor, onViewAll: () => widget.onNavigateTab?.call(3)),
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -861,19 +904,19 @@ class _HomeScreenState extends State<HomeScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+                boxShadow: [
+                  BoxShadow(color: cardShadow, blurRadius: 10, offset: const Offset(0, 4)),
                 ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildNetworkItem('SCOM', AppImages.scomIcon, const Color(0xFF22C55E), 4),
-                  _buildNetworkItem('Jazz', AppImages.jazzIcon, const Color(0xFF22C55E), 4),
-                  _buildNetworkItem('Zong 4G', AppImages.zongIcon, const Color(0xFF22C55E), 4),
-                  _buildNetworkItem('Telenor', AppImages.telenorIcon, const Color(0xFFF59E0B), 2),
+                  _buildNetworkItem('SCOM', AppImages.scomIcon, const Color(0xFF22C55E), 4, nameColor, barBgColor),
+                  _buildNetworkItem('Jazz', AppImages.jazzIcon, const Color(0xFF22C55E), 4, nameColor, barBgColor),
+                  _buildNetworkItem('Zong 4G', AppImages.zongIcon, const Color(0xFF22C55E), 4, nameColor, barBgColor),
+                  _buildNetworkItem('Telenor', AppImages.telenorIcon, const Color(0xFFF59E0B), 2, nameColor, barBgColor),
                 ],
               ),
             ),
@@ -883,7 +926,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildNetworkItem(String name, String imageAssetPath, Color statusColor, int bars) {
+  Widget _buildNetworkItem(String name, String imageAssetPath, Color statusColor, int bars, Color nameColor, Color barBgColor) {
     return Column(
       children: [
         SizedBox(
@@ -901,7 +944,7 @@ class _HomeScreenState extends State<HomeScreen>
           style: GoogleFonts.outfit(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF334155),
+            color: nameColor,
           ),
         ),
         const SizedBox(height: 4),
@@ -914,7 +957,7 @@ class _HomeScreenState extends State<HomeScreen>
               width: 3.5,
               height: 6.0 + (index * 2.5),
               decoration: BoxDecoration(
-                color: index < bars ? statusColor : Colors.grey.shade200,
+                color: index < bars ? statusColor : barBgColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             );

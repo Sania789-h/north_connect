@@ -124,8 +124,17 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final tertiaryText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8);
+    final filterBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+    final emptyIconBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+    final iconColor = isDark ? Colors.white : const Color(0xFF0F172A);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: bg,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _creating ? null : _handleCreateAlert,
         backgroundColor: const Color(0xFF067A46),
@@ -161,9 +170,9 @@ class _AlertsScreenState extends State<AlertsScreen> {
                 children: [
                   IconButton(
                     onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      color: Color(0xFF0F172A),
+                      color: iconColor,
                       size: 22,
                     ),
                   ),
@@ -173,7 +182,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
+                      color: textPrimary,
                     ),
                   ),
                   const Spacer(),
@@ -206,7 +215,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                           decoration: BoxDecoration(
                             color: selected
                                 ? const Color(0xFF067A46)
-                                : const Color(0xFFF1F5F9),
+                                : filterBg,
                             borderRadius: BorderRadius.circular(22),
                             boxShadow: selected
                                 ? [
@@ -226,7 +235,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                               fontWeight: FontWeight.w600,
                               color: selected
                                   ? Colors.white
-                                  : const Color(0xFF64748B),
+                                  : textSecondary,
                             ),
                           ),
                         ),
@@ -284,13 +293,13 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                 Container(
                                   width: 72,
                                   height: 72,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFF1F5F9),
+                                  decoration: BoxDecoration(
+                                    color: emptyIconBg,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.notifications_none_rounded,
-                                    color: Color(0xFF64748B),
+                                    color: textSecondary,
                                     size: 34,
                                   ),
                                 ),
@@ -300,7 +309,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                   style: GoogleFonts.outfit(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF64748B),
+                                    color: textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -308,7 +317,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                   'Tap "Add Alert" to create your first alert.',
                                   style: GoogleFonts.outfit(
                                     fontSize: 13,
-                                    color: const Color(0xFF94A3B8),
+                                    color: tertiaryText,
                                   ),
                                 ),
                               ],
@@ -329,7 +338,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                               'No alerts in this category',
                               style: GoogleFonts.outfit(
                                 fontSize: 14,
-                                color: const Color(0xFF64748B),
+                                color: textSecondary,
                               ),
                             ),
                           ),

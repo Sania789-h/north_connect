@@ -57,10 +57,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1E293B);
+    final textNavy = isDark ? Colors.white : const Color(0xFF0F2C59);
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final textHint = isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8);
+    final backIconColor = isDark ? Colors.white : const Color(0xFF0F2C59);
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
+    final inputFill = isDark ? const Color(0xFF111827) : Colors.white;
+
     final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -71,10 +81,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 alignment: Alignment.centerLeft,
                 child: IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.arrow_back_ios_new_rounded,
                     size: 20,
-                    color: Color(0xFF0F2C59),
+                    color: backIconColor,
                   ),
                 ),
               ),
@@ -114,7 +124,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         style: GoogleFonts.outfit(
                           fontSize: 26,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F2C59),
+                          color: textNavy,
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -127,7 +137,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
                           fontSize: 14,
-                          color: const Color(0xFF64748B),
+                          color: textSecondary,
                           height: 1.55,
                         ),
                       ),
@@ -142,7 +152,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             style: GoogleFonts.outfit(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF0F2C59),
+                              color: textNavy,
                             ),
                           ),
                         ),
@@ -152,22 +162,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         TextFormField(
                           controller: emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: GoogleFonts.outfit(fontSize: 15),
+                          style: GoogleFonts.outfit(fontSize: 15, color: textPrimary),
                           decoration: InputDecoration(
+                            filled: true,
+                            fillColor: inputFill,
                             hintText: 'Enter your email',
                             hintStyle: GoogleFonts.outfit(
-                                color: const Color(0xFF94A3B8)),
+                                color: textHint),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 14),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide:
-                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                                  BorderSide(color: borderColor),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide:
-                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                                  BorderSide(color: borderColor),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -267,7 +279,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           Text(
                             'Remember your password? ',
                             style: GoogleFonts.outfit(
-                              color: const Color(0xFF64748B),
+                              color: textSecondary,
                               fontSize: 14,
                             ),
                           ),

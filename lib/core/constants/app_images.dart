@@ -2,9 +2,9 @@ class AppImages {
   static const splashBg = "assests/images/splash bg.png";
   static const logo = "assests/images/logo.png";
 
-  static const onboarding1 = "assests/images/onbording screen/onboarding_1.png";
-  static const onboarding2 = "assests/images/onbording screen/onboarding_2.png";
-  static const onboarding3 = "assests/images/onbording screen/onboarding_3.png";
+  static const onboarding1 = "assests/images/onbording screen/onbording_1.png";
+  static const onboarding2 = "assests/images/onbording screen/onbording_2.png";
+  static const onboarding3 = "assests/images/onbording screen/onbording_3.png";
 
   static const forgotPassword = "assests/images/forget password.png";
 
@@ -21,4 +21,4 @@ class AppImages {
   static const jazzIcon = "assests/images/iccons/jazz_icon.png";
   static const zongIcon = "assests/images/iccons/zong_icon.png";
   static const telenorIcon = "assests/images/iccons/telenor_iccon.png";
-}
+}

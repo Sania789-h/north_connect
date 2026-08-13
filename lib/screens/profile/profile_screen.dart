@@ -130,9 +130,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await Supabase.instance.client.from('profiles').upsert({
           'id': user.id,
           'full_name': fallbackProfile['full_name'],
-          'email': fallbackProfile['email'],
-          'phone': fallbackProfile['phone'],
-          'avatar_url': fallbackProfile['avatar_url'],
+          'phone': fallbackProfile['phone'] ?? '',
+          'avatar_url': fallbackProfile['avatar_url'] ?? '',
+          'location': fallbackProfile['location'] ?? 'Gilgit-Baltistan',
         }).timeout(const Duration(seconds: 10));
 
         final newData = await Supabase.instance.client
@@ -174,36 +174,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<bool> _confirmLogout() async {
     return await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20)),
-            title: Text('Logout',
-                style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1E293B))),
-            content: Text('Are you sure you want to logout?',
-                style: GoogleFonts.outfit(
-                    color: const Color(0xFF64748B))),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text('Cancel',
-                    style: GoogleFonts.outfit(
-                        color: const Color(0xFF64748B))),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+          builder: (ctx) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            final titleColor = isDark ? Colors.white : const Color(0xFF1E293B);
+            final contentColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+            final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+            return AlertDialog(
+              backgroundColor: bgColor,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: Text('Logout',
+                  style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.w700,
+                      color: titleColor)),
+              content: Text('Are you sure you want to logout?',
+                  style: GoogleFonts.outfit(
+                      color: contentColor)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text('Cancel',
+                      style: GoogleFonts.outfit(
+                          color: contentColor)),
                 ),
-                child: Text('Logout',
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-              ),
-            ],
-          ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('Logout',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                ),
+              ],
+            );
+          },
         ) ??
         false;
   }
@@ -249,67 +256,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(4))),
-            const SizedBox(height: 18),
-            Container(
-                width: 64,
-                height: 64,
-                decoration: const BoxDecoration(
-                    color: Color(0xFFF0F4F8), shape: BoxShape.circle),
-                child: const Icon(Icons.rocket_launch_rounded,
-                    size: 30, color: Color(0xFF067A46))),
-            const SizedBox(height: 14),
-            Text('$title - Coming Soon',
-                style: GoogleFonts.outfit(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1E293B))),
-            const SizedBox(height: 6),
-            Text('This feature is under development.',
-                style: GoogleFonts.outfit(
-                    fontSize: 13, color: const Color(0xFF64748B))),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF067A46),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final sheetBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+        final titleColor = isDark ? Colors.white : const Color(0xFF1E293B);
+        final subColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+        final dividerCol = isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0);
+        final iconBg = isDark ? const Color(0xFF334155) : const Color(0xFFF0F4F8);
+        return Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: sheetBg,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: dividerCol,
+                      borderRadius: BorderRadius.circular(4))),
+              const SizedBox(height: 18),
+              Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                      color: iconBg, shape: BoxShape.circle),
+                  child: const Icon(Icons.rocket_launch_rounded,
+                      size: 30, color: Color(0xFF067A46))),
+              const SizedBox(height: 14),
+              Text('$title - Coming Soon',
+                  style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: titleColor)),
+              const SizedBox(height: 6),
+              Text('This feature is under development.',
+                  style: GoogleFonts.outfit(
+                      fontSize: 13, color: subColor)),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF067A46),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text('Got it',
+                      style: GoogleFonts.outfit(
+                          fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
-                child: Text('Got it',
-                    style: GoogleFonts.outfit(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final tileIconColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B);
+    final dividerColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
+    final avatarPlaceholder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final backIconColor = isDark ? Colors.white : const Color(0xFF1E293B);
+    final chevronColor = const Color(0xFF94A3B8);
+    final logoutBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: bg,
       body: FutureBuilder<Map<String, dynamic>?>(
         future: _profileFuture,
         builder: (context, snapshot) {
@@ -380,9 +407,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (widget.showBackButton)
                         IconButton(
                           onPressed: () => Navigator.maybePop(context),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_back_ios_new_rounded,
-                            color: Color(0xFF1E293B),
+                            color: backIconColor,
                             size: 24,
                           ),
                           padding: EdgeInsets.zero,
@@ -405,7 +432,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         height: 140,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFFE2E8F0),
+                          color: avatarPlaceholder,
                         ),
                         child: ClipOval(
                           child: avatarUrl.isNotEmpty
@@ -443,7 +470,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 32,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F172A),
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -452,7 +479,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
-                      color: const Color(0xFF64748B),
+                      color: subColor,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -461,7 +488,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
-                      color: const Color(0xFF64748B),
+                      color: subColor,
                     ),
                   ),
                   const SizedBox(height: 36),
@@ -517,7 +544,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 36),
                   Material(
-                    color: Colors.white,
+                    color: logoutBg,
                     borderRadius: BorderRadius.circular(18),
                     child: InkWell(
                       onTap: logout,
@@ -584,6 +611,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String title,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final tileIconColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B);
+    final splashBase = isDark ? Colors.white : const Color(0xFF0F172A);
+    final chevronColor = const Color(0xFF94A3B8);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -592,15 +625,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap();
         },
         borderRadius: BorderRadius.circular(14),
-        splashColor: const Color(0xFF0F172A).withValues(alpha: 0.04),
+        splashColor: splashBase.withValues(alpha: 0.04),
         highlightColor:
-            const Color(0xFF0F172A).withValues(alpha: 0.02),
+            splashBase.withValues(alpha: 0.02),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
           child: Row(
             children: [
               Icon(icon,
-                  size: 26, color: const Color(0xFF1E293B)),
+                  size: 26, color: tileIconColor),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
@@ -608,13 +641,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF0F172A),
+                    color: textColor,
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              const Icon(Icons.arrow_forward_ios_rounded,
-                  size: 18, color: Color(0xFF94A3B8)),
+              Icon(Icons.arrow_forward_ios_rounded,
+                  size: 18, color: chevronColor),
             ],
           ),
         ),

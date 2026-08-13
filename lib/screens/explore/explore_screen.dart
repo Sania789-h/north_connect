@@ -113,13 +113,23 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : (AppColors.textPrimary);
+    final textSecondary = isDark ? const Color(0xFFCBD5E1) : AppColors.textSecondary;
+    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.04);
+    final filterBorder = isDark ? Colors.white.withValues(alpha: 0.12) : Colors.grey.shade300;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: bg,
       appBar: AppBar(
-        title: const Text('Explore GB'),
+        backgroundColor: bg,
+        foregroundColor: textPrimary,
+        title: Text('Explore GB', style: TextStyle(color: textPrimary)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: Icon(Icons.search, color: textPrimary),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -136,12 +146,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "Discover\nGilgit-Baltistan",
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 height: 1.2,
+                color: textPrimary,
               ),
             ),
             const SizedBox(height: 24),
@@ -156,16 +167,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       margin: const EdgeInsets.only(right: 12),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : Colors.white,
+                        color: isSelected ? AppColors.primary : cardBg,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? AppColors.primary : Colors.grey.shade300,
+                          color: isSelected ? AppColors.primary : filterBorder,
                         ),
                       ),
                       child: Text(
                         filter,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          color: isSelected ? Colors.white : textPrimary,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
@@ -182,7 +193,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
                 final dest = _filteredDestinations[index];
-                return _buildDestinationCard(context, dest);
+                return _buildDestinationCard(context, dest, cardBg: cardBg, textPrimary: textPrimary, textSecondary: textSecondary, shadowColor: shadowColor);
               },
             ),
           ],
@@ -191,15 +202,23 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildDestinationCard(BuildContext context, Map<String, dynamic> dest) {
+  Widget _buildDestinationCard(
+    BuildContext context,
+    Map<String, dynamic> dest, {
+    required Color cardBg,
+    required Color textPrimary,
+    required Color textSecondary,
+    required Color shadowColor,
+  }) {
+    final placeholderColor = isDarkColor(cardBg) ? const Color(0xFF334155) : Colors.grey[200]!;
     return Container(
       height: 200,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        color: Colors.white,
+        color: cardBg,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: shadowColor,
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -220,12 +239,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 width: double.infinity,
                 height: double.infinity,
                 placeholder: (_, __) => Container(
-                  color: Colors.grey[200],
+                  color: placeholderColor,
                   child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
                 errorWidget: (_, __, ___) => Container(
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.image, color: Colors.grey),
+                  color: placeholderColor,
+                  child: Icon(Icons.image, color: textSecondary),
                 ),
               ),
             ),
@@ -244,24 +263,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       const SizedBox(width: 4),
                       Text(
                         dest['rating'].toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     dest['title'],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     dest['location'],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: textSecondary,
                     ),
                   ),
                   const Spacer(),
@@ -295,5 +315,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ],
       ),
     );
+  }
+
+  bool isDarkColor(Color color) {
+    final double luminance = color.computeLuminance();
+    return luminance < 0.5;
   }
 }

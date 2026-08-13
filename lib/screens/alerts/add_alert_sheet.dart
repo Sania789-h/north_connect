@@ -42,33 +42,45 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
     super.dispose();
   }
 
-  InputDecoration _deco(String label, String hint, IconData icon) =>
+  InputDecoration _deco(
+    String label,
+    String hint,
+    IconData icon, {
+    required bool isDark,
+  }) =>
       InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, size: 20),
+        prefixIcon: Icon(icon, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         filled: true,
-        fillColor: const Color(0xFFF8FAFC),
+        fillColor: isDark ? const Color(0xFF0F1C2E) : const Color(0xFFF8FAFC),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
         ),
         labelStyle: GoogleFonts.outfit(
-          color: const Color(0xFF64748B),
+          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
           fontWeight: FontWeight.w500,
         ),
-        hintStyle: GoogleFonts.outfit(color: const Color(0xFF94A3B8)),
+        hintStyle: GoogleFonts.outfit(
+          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+        ),
         errorStyle: GoogleFonts.outfit(
           fontSize: 12,
           color: const Color(0xFFDC2626),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
+            width: isDark ? 1.0 : 0,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -112,6 +124,20 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBg = isDark ? const Color(0xFF111827) : Colors.white;
+    final handleColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final dividerColor = isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF1F5F9);
+    final closeIconColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final titleColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final labelColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF0F172A);
+    final unselectedChipBg = isDark ? const Color(0xFF0F1C2E) : const Color(0xFFF8FAFC);
+    final unselectedChipBorder = isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE2E8F0);
+    final unselectedChipText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
+    final severityBg = isDark ? const Color(0xFF0F1C2E) : const Color(0xFFF8FAFC);
+    final unselectedSeverityText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final selectedSeverityCardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
@@ -122,35 +148,37 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
         expand: false,
         builder: (_, scrollCtrl) {
           return Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+            decoration: BoxDecoration(
+              color: sheetBg,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(26)),
             ),
             child: Column(
               children: [
+                // Handle
                 Padding(
                   padding: const EdgeInsets.only(top: 10, bottom: 6),
                   child: Container(
                     width: 46,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
+                      color: handleColor,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ),
+                // Header
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: _submitting
-                            ? null
-                            : () => Navigator.pop(context),
+                        onPressed:
+                            _submitting ? null : () => Navigator.pop(context),
                         visualDensity: VisualDensity.compact,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close_rounded,
-                          color: Color(0xFF64748B),
+                          color: closeIconColor,
                         ),
                       ),
                       Expanded(
@@ -160,7 +188,7 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                           style: GoogleFonts.outfit(
                             fontSize: 19,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F172A),
+                            color: titleColor,
                           ),
                         ),
                       ),
@@ -168,7 +196,8 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                     ],
                   ),
                 ),
-                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                Divider(height: 1, color: dividerColor),
+                // Form Body
                 Expanded(
                   child: SingleChildScrollView(
                     controller: scrollCtrl,
@@ -179,7 +208,8 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _sectionLabel('Alert Category'),
+                          // ── Category ──────────────────────────────────────
+                          _sectionLabel('Alert Category', labelColor),
                           const SizedBox(height: 10),
                           Wrap(
                             spacing: 10,
@@ -192,21 +222,20 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                                   setState(() => _selectedCategory = c.label);
                                 },
                                 child: AnimatedContainer(
-                                  duration:
-                                      const Duration(milliseconds: 160),
+                                  duration: const Duration(milliseconds: 160),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 9,
                                   ),
                                   decoration: BoxDecoration(
                                     color: selected
-                                        ? c.color.withValues(alpha: 0.12)
-                                        : const Color(0xFFF8FAFC),
+                                        ? c.color.withValues(alpha: 0.15)
+                                        : unselectedChipBg,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                                       color: selected
                                           ? c.color
-                                          : const Color(0xFFE2E8F0),
+                                          : unselectedChipBorder,
                                       width: selected ? 1.4 : 1,
                                     ),
                                   ),
@@ -219,8 +248,7 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                                         decoration: BoxDecoration(
                                           color: selected
                                               ? c.color
-                                              : c.color
-                                                  .withValues(alpha: 0.12),
+                                              : c.color.withValues(alpha: 0.15),
                                           borderRadius:
                                               BorderRadius.circular(9),
                                         ),
@@ -239,8 +267,8 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,
                                           color: selected
-                                              ? const Color(0xFF0F172A)
-                                              : const Color(0xFF475569),
+                                              ? (isDark ? Colors.white : const Color(0xFF0F172A))
+                                              : unselectedChipText,
                                         ),
                                       ),
                                     ],
@@ -250,11 +278,16 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                             }).toList(),
                           ),
                           const SizedBox(height: 20),
-                          _sectionLabel('Alert Title'),
+
+                          // ── Title ─────────────────────────────────────────
+                          _sectionLabel('Alert Title', labelColor),
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _titleCtrl,
                             textCapitalization: TextCapitalization.sentences,
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
                             validator: (v) {
                               if (v == null || v.trim().length < 4) {
                                 return 'Title must be at least 4 characters.';
@@ -265,17 +298,22 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                               'Title',
                               'e.g. Heavy rain expected in upper areas',
                               Icons.title_rounded,
+                              isDark: isDark,
                             ),
                           ),
                           const SizedBox(height: 16),
-                          _sectionLabel('Description'),
+
+                          // ── Description ───────────────────────────────────
+                          _sectionLabel('Description', labelColor),
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _descCtrl,
                             maxLines: 4,
                             minLines: 3,
-                            textCapitalization:
-                                TextCapitalization.sentences,
+                            textCapitalization: TextCapitalization.sentences,
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
                             validator: (v) {
                               if (v == null || v.trim().length < 10) {
                                 return 'Description should be at least 10 characters.';
@@ -286,14 +324,20 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                               'Describe the alert',
                               'What happened, where exactly, and any safety advice.',
                               Icons.notes_rounded,
+                              isDark: isDark,
                             ),
                           ),
                           const SizedBox(height: 16),
-                          _sectionLabel('Location'),
+
+                          // ── Location ──────────────────────────────────────
+                          _sectionLabel('Location', labelColor),
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _locationCtrl,
                             textCapitalization: TextCapitalization.words,
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
                                 return 'Please enter a location.';
@@ -304,16 +348,24 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                               'Location',
                               'e.g. Skardu Road, near Junction 3',
                               Icons.location_on_rounded,
+                              isDark: isDark,
                             ),
                           ),
                           const SizedBox(height: 20),
-                          _sectionLabel('Severity'),
+
+                          // ── Severity ──────────────────────────────────────
+                          _sectionLabel('Severity', labelColor),
                           const SizedBox(height: 10),
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
+                              color: severityBg,
                               borderRadius: BorderRadius.circular(16),
+                              border: isDark
+                                  ? Border.all(
+                                      color: Colors.white.withValues(alpha: 0.06),
+                                    )
+                                  : null,
                             ),
                             child: Row(
                               children: _severities.map((s) {
@@ -322,40 +374,32 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                                   child: GestureDetector(
                                     onTap: () {
                                       HapticFeedback.selectionClick();
-                                      setState(() =>
-                                          _selectedSeverity = s.label);
+                                      setState(() => _selectedSeverity = s.label);
                                     },
                                     child: AnimatedContainer(
-                                      duration: const Duration(
-                                          milliseconds: 160),
-                                      margin: const EdgeInsets.symmetric(
-                                          horizontal: 3),
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 11),
+                                      duration: const Duration(milliseconds: 160),
+                                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                                      padding: const EdgeInsets.symmetric(vertical: 11),
                                       decoration: BoxDecoration(
                                         color: selected
-                                            ? Colors.white
+                                            ? selectedSeverityCardBg
                                             : Colors.transparent,
-                                        borderRadius:
-                                            BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(12),
                                         border: selected
                                             ? Border.all(color: s.color)
                                             : null,
                                         boxShadow: selected
                                             ? [
                                                 BoxShadow(
-                                                  color: s.color.withValues(
-                                                      alpha: 0.15),
+                                                  color: s.color.withValues(alpha: 0.18),
                                                   blurRadius: 8,
-                                                  offset:
-                                                      const Offset(0, 2),
+                                                  offset: const Offset(0, 2),
                                                 ),
                                               ]
                                             : null,
                                       ),
                                       child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           Container(
                                             width: 10,
@@ -381,7 +425,7 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                                               fontWeight: FontWeight.w700,
                                               color: selected
                                                   ? s.color
-                                                  : const Color(0xFF64748B),
+                                                  : unselectedSeverityText,
                                             ),
                                           ),
                                         ],
@@ -393,6 +437,8 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                             ),
                           ),
                           const SizedBox(height: 28),
+
+                          // ── Submit Button ─────────────────────────────────
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
@@ -400,8 +446,7 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF067A46),
                                 foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                                 elevation: 2,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
@@ -440,12 +485,12 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
     );
   }
 
-  Widget _sectionLabel(String text) => Text(
+  Widget _sectionLabel(String text, Color color) => Text(
         text,
         style: GoogleFonts.outfit(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: const Color(0xFF0F172A),
+          color: color,
         ),
       );
 }

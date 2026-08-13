@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/alert_model.dart';
-import '../core/constants/colors.dart';
 
 class AlertCard extends StatelessWidget {
   final AlertModel alert;
@@ -57,9 +56,23 @@ class AlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = getCategoryBgColor(alert.category, alert.title);
     final icon = getCategoryIcon(alert.category, alert.title);
     final isNew = alert.isNew;
+
+    // Dark-aware colors
+    final cardBg = isDark
+        ? (isNew ? const Color(0xFF0D2318) : const Color(0xFF1E293B))
+        : (isNew ? const Color(0xFFF0FDF4) : Colors.white);
+    final cardBorder = isNew
+        ? const Color(0xFF067A46).withValues(alpha: 0.25)
+        : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.transparent);
+    final shadowColor = isDark
+        ? Colors.black.withValues(alpha: 0.25)
+        : Colors.black.withValues(alpha: 0.04);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -71,15 +84,15 @@ class AlertCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isNew ? const Color(0xFFF0FDF4) : Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: isNew ? const Color(0xFF067A46).withValues(alpha: 0.15) : Colors.transparent,
+                color: cardBorder,
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: shadowColor,
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -139,7 +152,7 @@ class AlertCard extends StatelessWidget {
                               style: GoogleFonts.outfit(
                                 fontSize: 16,
                                 fontWeight: isNew ? FontWeight.w800 : FontWeight.w700,
-                                color: AppColors.textPrimary,
+                                color: textPrimary,
                                 height: 1.3,
                               ),
                             ),
@@ -151,7 +164,7 @@ class AlertCard extends StatelessWidget {
                         alert.location,
                         style: GoogleFonts.outfit(
                           fontSize: 14,
-                          color: const Color(0xFF64748B),
+                          color: textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
