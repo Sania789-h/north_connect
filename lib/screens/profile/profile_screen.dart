@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/colors.dart';
 import '../../services/auth_service.dart';
 import '../../services/mock_database_service.dart';
+import '../../widgets/avatar_widget.dart';
 import '../auth/login_screen.dart';
 import '../alerts/alerts_screen.dart';
 import 'edit_profile_screen.dart';
@@ -22,7 +24,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late final Future<Map<String, dynamic>?> _profileFuture;
+  late Future<Map<String, dynamic>?> _profileFuture;
 
   @override
   void initState() {
@@ -31,6 +33,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<Map<String, dynamic>?> getProfile() async {
+    // Refresh auth session to get latest metadata (avatar_url etc.)
+    try {
+      await Supabase.instance.client.auth.refreshSession();
+    } catch (e) {
+      debugPrint("getProfile: session refresh failed: $e");
+    }
+
     final user = Supabase.instance.client.auth.currentUser;
     final String userEmail = user?.email ?? '';
     final String userPhone = user?.phone ?? '';
@@ -52,41 +61,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ? userEmail.split('@').first
             : 'User';
 
+    final String defaultAvatar = metaAvatar.isNotEmpty
+        ? metaAvatar
+        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(defaultName)}&background=067A46&color=fff&size=256';
+
     final fallbackProfile = <String, dynamic>{
       'id': user?.id ?? 'local',
       'full_name': defaultName,
       'email': userEmail.isEmpty ? 'user@email.com' : userEmail,
       'phone': userPhone.isEmpty ? '' : userPhone,
       'bio': '',
-      'avatar_url': metaAvatar,
+      'avatar_url': defaultAvatar,
       'gender': 'Other',
       'location': '',
       'emergency_contact_name': '',
       'emergency_contact_phone': '',
     };
 
-    final Map<String, dynamic> offline =
-        MockDatabaseService.offlineProfile != null
-            ? Map<String, dynamic>.from(MockDatabaseService.offlineProfile!)
-            : <String, dynamic>{};
-
-    if (offline.isNotEmpty) {
-      debugPrint("getProfile: using offline profile. avatar_url=${offline['avatar_url']}");
-      if (offline['avatar_url'] == null ||
-          offline['avatar_url'].toString().trim().isEmpty) {
-        offline['avatar_url'] = metaAvatar;
-      }
-      if (offline['full_name'] == null ||
-          offline['full_name'].toString().trim().isEmpty) {
-        offline['full_name'] = defaultName;
-      }
-      if (offline['email'] == null ||
-          offline['email'].toString().trim().isEmpty) {
-        offline['email'] = fallbackProfile['email'];
-      }
-      return offline;
-    }
-
+    // Always fetch fresh from Supabase (skip offline cache for profile picture accuracy)
     if (user == null) {
       debugPrint("getProfile: user null, using fallback avatar=${fallbackProfile['avatar_url']}");
       return fallbackProfile;
@@ -389,8 +381,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ? (((user!.userMetadata as Map)['avatar_url'] as String?) ?? '')
                   .trim()
               : '';
-          final avatarUrl =
-              rawAvatar.isNotEmpty ? rawAvatar : metaAvatar2;
+          final String fallbackAvatar =
+              'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name.isNotEmpty ? name : "User")}&background=067A46&color=fff&size=256';
+          final avatarUrl = rawAvatar.isNotEmpty
+              ? rawAvatar
+              : (metaAvatar2.isNotEmpty ? metaAvatar2 : fallbackAvatar);
           debugPrint(
               "Profile build: rawAvatar=$rawAvatar metaAvatar=$metaAvatar2 finalAvatar=$avatarUrl");
           final initial =
@@ -427,22 +422,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     clipBehavior: Clip.none,
                     alignment: Alignment.bottomRight,
                     children: [
-                      Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: avatarPlaceholder,
-                        ),
-                        child: ClipOval(
-                          child: avatarUrl.isNotEmpty
-                              ? Image.network(avatarUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      _avatarFallback(initial),
-                                )
-                              : _avatarFallback(initial),
-                        ),
+                      AvatarWidget(
+                        avatarUrl: avatarUrl,
+                        name: name,
+                        size: 140,
+                        backgroundColor: avatarPlaceholder,
                       ),
                       Positioned(
                         bottom: 4,
@@ -506,6 +490,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       );
                       if (didUpdate == true && mounted) {
+                        // Clear image cache so new avatar shows immediately
+                        await CachedNetworkImage.evictFromCache(
+                            profile['avatar_url']?.toString() ?? '');
+                        MockDatabaseService.updateOfflineProfile({});
                         setState(() {
                           _profileFuture = getProfile();
                         });

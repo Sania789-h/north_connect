@@ -4,7 +4,7 @@ import 'home/home_screen.dart';
 import 'weather/weather_screen.dart';
 import 'alerts/alerts_screen.dart';
 import 'network/network_screen.dart';
-import 'profile/profile_screen.dart';
+
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
@@ -20,13 +20,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    _currentIndex = (widget.initialIndex >= 0 && widget.initialIndex < 4)
+        ? widget.initialIndex
+        : 0;
   }
 
   void _onTabSelect(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    if (index >= 0 && index < 4) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   @override
@@ -45,7 +49,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const WeatherScreen(),
       const AlertsScreen(),
       const NetworkScreen(),
-      const ProfileScreen(),
     ];
 
     return Scaffold(
@@ -102,11 +105,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 const BottomNavigationBarItem(
                   icon: Icon(Icons.cell_tower_rounded),
                   label: "Network",
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline_rounded),
-                  activeIcon: Icon(Icons.person_rounded),
-                  label: "Profile",
                 ),
               ],
             ),

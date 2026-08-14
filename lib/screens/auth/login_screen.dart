@@ -8,60 +8,7 @@ import '../main_navigation_screen.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
-class GoogleIcon extends StatelessWidget {
-  const GoogleIcon({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(18, 18),
-      painter: _GoogleIconPainter(),
-    );
-  }
-}
-
-class _GoogleIconPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.24;
-
-    final rect = Rect.fromLTWH(w * 0.1, h * 0.1, w * 0.8, h * 0.8);
-    
-    // Red: Top-left to top-right
-    paint.color = const Color(0xFFEA4335);
-    canvas.drawArc(rect, -2.5, 1.8, false, paint);
-    
-    // Yellow: Left bottom
-    paint.color = const Color(0xFFFBBC05);
-    canvas.drawArc(rect, -3.9, 1.4, false, paint);
-    
-    // Green: Bottom
-    paint.color = const Color(0xFF34A853);
-    canvas.drawArc(rect, 0.9, 1.6, false, paint);
-
-    // Blue: Right & Horizontal bar
-    paint.color = const Color(0xFF4285F4);
-    canvas.drawArc(rect, -0.7, 1.6, false, paint);
-    
-    // Draw the horizontal bar
-    final barPaint = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..style = PaintingStyle.fill;
-    
-    canvas.drawRect(
-      Rect.fromLTWH(w * 0.5, h * 0.42, w * 0.42, h * 0.16),
-      barPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -149,15 +96,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
-    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF1E293B);
     final textNavy = isDark ? Colors.white : const Color(0xFF0F2C59);
     final textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
     final textSkip = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
     final borderColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
     final inputFill = isDark ? const Color(0xFF111827) : Colors.white;
-    final dividerCol = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
-    final appleIconColor = isDark ? Colors.white : Colors.black;
 
     final screenSize = MediaQuery.of(context).size;
 
@@ -436,95 +380,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Divider
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: dividerCol, thickness: 1)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          'or continue with',
-                          style: GoogleFonts.outfit(
-                            color: textSecondary,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: dividerCol, thickness: 1)),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Social Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Helpers.showSnackBar(context, "Google login coming soon!");
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: borderColor),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const GoogleIcon(),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Google',
-                                style: GoogleFonts.outfit(
-                                  color: textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Helpers.showSnackBar(context, "Apple login coming soon!");
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: borderColor),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.apple,
-                                color: appleIconColor,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Apple',
-                                style: GoogleFonts.outfit(
-                                  color: textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                   const SizedBox(height: 32),
                   

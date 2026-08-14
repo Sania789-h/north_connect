@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/app_images.dart';
+import '../../core/utils/helpers.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -22,26 +23,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => isLoading = true);
 
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(
-        emailController.text.trim(),
-      );
+      final email = emailController.text.trim();
+      await Supabase.instance.client.auth.resetPasswordForEmail(email);
 
       if (mounted) {
         setState(() => _emailSent = true);
+        Helpers.showSnackBar(
+          context,
+          'Password reset link sent to $email! Please check your inbox.',
+        );
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        String message = e.message;
+        if (message.toLowerCase().contains("rate limit")) {
+          message = "Too many requests. Please wait a minute before trying again.";
+        } else if (message.toLowerCase().contains("user not found")) {
+          message = "No account found with this email address.";
+        }
+        Helpers.showSnackBar(context, message);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Error: Could not send reset link. Please try again.',
-              style: GoogleFonts.outfit(color: Colors.white),
-            ),
-            backgroundColor: const Color(0xFFC62828),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-          ),
+        Helpers.showSnackBar(
+          context,
+          'Connection Error: Please check your internet connection.',
         );
       }
     } finally {
@@ -101,14 +107,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                       // ── Lock Icon Image ──
                       SizedBox(
-                        height: 180,
-                        width: 180,
+                        height: 160,
+                        width: 160,
                         child: Image.asset(
                           AppImages.forgotPassword,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return const Icon(
-                              Icons.lock_reset_rounded,
+                              Icons.mark_email_read_rounded,
                               size: 80,
                               color: Color(0xFF067A46),
                             );
@@ -119,7 +125,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                       // ── Title ──
                       Text(
-                        'Forgot Password?',
+                        _emailSent ? 'Check Your Email' : 'Forgot Password?',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
                           fontSize: 26,
@@ -132,7 +138,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       // ── Subtitle ──
                       Text(
                         _emailSent
-                            ? 'A reset link has been sent to your email address. Please check your inbox.'
+                            ? 'A reset link has been sent to ${emailController.text.trim()}. Please check your inbox or spam folder to reset your password.'
                             : 'Enter your email address and we\'ll send you instructions to reset your password.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
@@ -141,7 +147,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           height: 1.55,
                         ),
                       ),
-                      SizedBox(height: screenSize.height * 0.05),
+                      SizedBox(height: screenSize.height * 0.04),
 
                       if (!_emailSent) ...[
                         // ── Email Label ──
@@ -167,19 +173,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             filled: true,
                             fillColor: inputFill,
                             hintText: 'Enter your email',
-                            hintStyle: GoogleFonts.outfit(
-                                color: textHint),
+                            hintStyle: GoogleFonts.outfit(color: textHint),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 14),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  BorderSide(color: borderColor),
+                              borderSide: BorderSide(color: borderColor),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  BorderSide(color: borderColor),
+                              borderSide: BorderSide(color: borderColor),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -219,7 +222,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             onPressed: isLoading ? null : _sendResetLink,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF067A46),
+                              disabledBackgroundColor:
+                                  const Color(0xFF067A46).withValues(alpha: 0.6),
                               foregroundColor: Colors.white,
+                              disabledForegroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -244,28 +250,39 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
                       ] else ...[
-                        // ── Resend option after email sent ──
+                        // ── Resend & Back options after email sent ──
                         SizedBox(
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () =>
-                                setState(() => _emailSent = false),
+                            onPressed: isLoading ? null : _sendResetLink,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF067A46),
+                              disabledBackgroundColor:
+                                  const Color(0xFF067A46).withValues(alpha: 0.6),
                               foregroundColor: Colors.white,
+                              disabledForegroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               elevation: 0,
                             ),
-                            child: Text(
-                              'Resend Link',
-                              style: GoogleFonts.outfit(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : Text(
+                                    'Resend Link',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],

@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/alert_model.dart';
 import '../models/notification_model.dart';
 
@@ -260,6 +262,24 @@ class MockDatabaseService {
 
   static void updateOfflineProfile(Map<String, dynamic> profile) {
     _offlineProfile = profile;
+    try {
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setString('offline_profile', jsonEncode(profile));
+      });
+    } catch (_) {}
+  }
+
+  static Future<Map<String, dynamic>?> loadOfflineProfile() async {
+    if (_offlineProfile != null) return _offlineProfile;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedStr = prefs.getString('offline_profile');
+      if (savedStr != null && savedStr.isNotEmpty) {
+        _offlineProfile = Map<String, dynamic>.from(jsonDecode(savedStr));
+        return _offlineProfile;
+      }
+    } catch (_) {}
+    return null;
   }
 
   static void addWeather(Map<String, dynamic> weather) {

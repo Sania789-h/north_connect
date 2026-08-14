@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/app_images.dart';
+import '../../services/mock_database_service.dart';
 import '../../services/weather_service.dart';
+import '../../widgets/avatar_widget.dart';
 import '../sos/sos_screen.dart';
+import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -29,6 +33,8 @@ class _HomeScreenState extends State<HomeScreen>
   bool _loading = true;
   String _error = '';
   WeatherData? _data;
+  String _userAvatarUrl = '';
+  String _userName = '';
 
   @override
   void initState() {
@@ -47,6 +53,27 @@ class _HomeScreenState extends State<HomeScreen>
     _slideCtrl.value = 1.0;
 
     _loadWeather();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final offline = await MockDatabaseService.loadOfflineProfile();
+      final user = Supabase.instance.client.auth.currentUser;
+      final metaAvatar = user?.userMetadata is Map
+          ? ((user!.userMetadata as Map)['avatar_url'] as String? ?? '')
+          : '';
+      final metaName = user?.userMetadata is Map
+          ? ((user!.userMetadata as Map)['full_name'] as String? ?? '')
+          : '';
+
+      if (!mounted) return;
+      setState(() {
+        _userAvatarUrl =
+            (offline?['avatar_url'] as String? ?? metaAvatar).trim();
+        _userName = (offline?['full_name'] as String? ?? metaName).trim();
+      });
+    } catch (_) {}
   }
 
   @override
@@ -230,16 +257,23 @@ class _HomeScreenState extends State<HomeScreen>
               icon: Icon(Icons.notifications_none_rounded, color: textColor),
             ),
             GestureDetector(
-              onTap: () => widget.onNavigateTab?.call(4),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                  border: Border.all(color: isDark ? const Color(0xFF1E293B) : Colors.white, width: 2),
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ProfileScreen(showBackButton: true),
+                  ),
+                );
+                _loadUserProfile();
+              },
+              child: AvatarWidget(
+                avatarUrl: _userAvatarUrl,
+                name: _userName,
+                size: 36,
+                border: Border.all(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  width: 2,
                 ),
-                child: Icon(Icons.person, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF94A3B8), size: 20),
               ),
             ),
           ],
@@ -686,7 +720,15 @@ class _HomeScreenState extends State<HomeScreen>
                 qaBg,
                 qaShadow,
                 qaLabel,
-                onTap: () => widget.onNavigateTab?.call(4),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProfileScreen(showBackButton: true),
+                    ),
+                  );
+                  _loadUserProfile();
+                },
               ),
             ],
           ),

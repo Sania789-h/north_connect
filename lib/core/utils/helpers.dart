@@ -6,7 +6,10 @@ class Helpers {
   static void showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.black87,
       ),

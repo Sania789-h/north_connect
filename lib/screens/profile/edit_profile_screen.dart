@@ -1,10 +1,13 @@
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/constants/colors.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/profile_service.dart';
+import '../../widgets/avatar_widget.dart';
 import '../../widgets/custom_button.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -21,17 +24,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  late TextEditingController _bioController;
+  late TextEditingController _locationController;
 
   late String _selectedAvatarUrl;
   bool _isLoading = false;
+  bool _isUploadingImage = false;
 
   final List<String> presetAvatars = [
-    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
-    'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=300',
-    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300',
-    'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=300',
-    'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300',
+    'https://i.pravatar.cc/300?img=11',
+    'https://i.pravatar.cc/300?img=12',
+    'https://i.pravatar.cc/300?img=33',
+    'https://i.pravatar.cc/300?img=47',
+    'https://i.pravatar.cc/300?img=68',
+    'https://i.pravatar.cc/300?img=53',
   ];
 
   @override
@@ -65,6 +71,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         text: profileEmail.isNotEmpty ? profileEmail : fallbackEmail);
     _phoneController = TextEditingController(
         text: profilePhone.isNotEmpty ? profilePhone : fallbackPhone);
+    _bioController = TextEditingController(
+        text: (widget.currentProfile['bio'] as String? ?? '').trim());
+    _locationController = TextEditingController(
+        text: (widget.currentProfile['location'] as String? ?? 'Gilgit-Baltistan').trim());
     _selectedAvatarUrl = widget.currentProfile['avatar_url'] as String? ?? '';
   }
 
@@ -73,6 +83,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _bioController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -80,6 +92,106 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final name =
         _nameController.text.trim().isEmpty ? 'U' : _nameController.text.trim();
     return name[0].toUpperCase();
+  }
+
+
+  Future<void> _pickAndUploadImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (pickedFile == null) return;
+
+      setState(() => _isUploadingImage = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Text('Uploading profile picture...',
+                  style: GoogleFonts.outfit()),
+            ],
+          ),
+          duration: const Duration(seconds: 3),
+          backgroundColor: const Color(0xFF067A46),
+        ),
+      );
+
+      final String? uploadedUrl = await ProfileService.uploadAvatar(pickedFile);
+
+      if (!mounted) return;
+      setState(() => _isUploadingImage = false);
+
+      if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
+        setState(() => _selectedAvatarUrl = uploadedUrl);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Profile picture uploaded successfully!', style: GoogleFonts.outfit()),
+            backgroundColor: const Color(0xFF067A46),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        // Local path fallback if cloud storage bucket is unconfigured/offline
+        setState(() => _selectedAvatarUrl = pickedFile.path);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Picture selected & saved to profile!',
+                style: GoogleFonts.outfit()),
+            backgroundColor: const Color(0xFF067A46),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error picking image: $e");
+      if (mounted) setState(() => _isUploadingImage = false);
+    }
+  }
+
+  Future<void> _promptCustomUrl() async {
+    final controller = TextEditingController();
+    final url = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Custom Image URL', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'https://example.com/photo.jpg',
+            hintStyle: GoogleFonts.outfit(fontSize: 14, color: const Color(0xFF94A3B8)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.outfit(color: const Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF067A46),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text('Set Image', style: GoogleFonts.outfit(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (url != null && url.isNotEmpty) {
+      setState(() => _selectedAvatarUrl = url);
+    }
   }
 
   Future<void> _showAvatarPicker() async {
@@ -108,14 +220,89 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       borderRadius: BorderRadius.circular(4))),
             ),
             const SizedBox(height: 18),
-            Text(
-              'Change Profile Photo',
-              style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1E293B)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Change Profile Photo',
+                  style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E293B)),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _promptCustomUrl();
+                  },
+                  icon: const Icon(Icons.link_rounded, size: 18, color: Color(0xFF067A46)),
+                  label: Text('Custom URL', style: GoogleFonts.outfit(color: const Color(0xFF067A46), fontWeight: FontWeight.w600)),
+                )
+              ],
             ),
             const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickAndUploadImage(ImageSource.gallery);
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFDCFCE7)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.photo_library_rounded, color: Color(0xFF067A46), size: 26),
+                          const SizedBox(height: 6),
+                          Text('Gallery', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF067A46))),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickAndUploadImage(ImageSource.camera);
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFDCFCE7)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.camera_alt_rounded, color: Color(0xFF067A46), size: 26),
+                          const SizedBox(height: 6),
+                          Text('Camera', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF067A46))),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Or Choose Preset Avatar',
+              style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 10),
             GridView.count(
               crossAxisCount: 3,
               shrinkWrap: true,
@@ -131,32 +318,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   },
                   child: Stack(
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: selected
-                                  ? const Color(0xFF067A46)
-                                  : Colors.transparent,
-                              width: 3.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: Image.network(url, fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) {
-                            return Container(
-                              color: const Color(0xFFF0F4F8),
-                              child: const Icon(Icons.person_rounded,
-                                  size: 30, color: Color(0xFF94A3B8)),
-                            );
-                          }),
-                        ),
+                      AvatarWidget(
+                        avatarUrl: url,
+                        name: 'A${i + 1}',
+                        size: 80,
+                        border: Border.all(
+                            color: selected
+                                ? const Color(0xFF067A46)
+                                : Colors.transparent,
+                            width: 3.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          )
+                        ],
                       ),
                       if (selected)
                         const Positioned(
@@ -187,64 +364,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     HapticFeedback.lightImpact();
     setState(() => _isLoading = true);
 
-    final currentUser = Supabase.instance.client.auth.currentUser;
-    final updatedProfile = {
-      'id': currentUser?.id ?? 'local',
-      'full_name': _nameController.text.trim(),
-      'phone': _phoneController.text.trim(),
-      'avatar_url': _selectedAvatarUrl,
-      'bio': widget.currentProfile['bio'] ?? '',
-      'location': widget.currentProfile['location'] ?? 'Gilgit-Baltistan',
-      // Keep email only locally for display — auth.users holds the real email
-      'email': _emailController.text.trim(),
-    };
-
-    debugPrint("_saveProfile: avatar_url=$_selectedAvatarUrl");
-
-    // Build the profiles table payload (no 'email' column in DB)
-    final dbPayload = <String, dynamic>{
-      'id': currentUser?.id,
-      'full_name': updatedProfile['full_name'],
-      'phone': updatedProfile['phone'],
-      'avatar_url': updatedProfile['avatar_url'],
-      'bio': updatedProfile['bio'],
-      'location': updatedProfile['location'],
-    };
-
-    try {
-      if (currentUser != null) {
-        await Future.wait([
-          Supabase.instance.client
-              .from('profiles')
-              .upsert(dbPayload)
-              .timeout(const Duration(seconds: 10)),
-          Supabase.instance.client.auth
-              .updateUser(
-                UserAttributes(
-                  data: {
-                    'full_name': _nameController.text.trim(),
-                    'avatar_url': _selectedAvatarUrl,
-                  },
-                  email: _emailController.text.trim().isNotEmpty &&
-                          _emailController.text.trim().contains('@')
-                      ? _emailController.text.trim()
-                      : null,
-                ),
-              )
-              .timeout(const Duration(seconds: 10))
-              .catchError((e) {
-            debugPrint("Auth metadata update failed (non-fatal): $e");
-            return null;
-          }),
-        ]);
-      }
-    } catch (e) {
-      debugPrint("DB upsert failed on save, writing locally: $e");
-    }
-
-    MockDatabaseService.updateOfflineProfile(
-        Map<String, dynamic>.from(updatedProfile));
-    debugPrint("MockDatabaseService updated locally with avatar=${updatedProfile['avatar_url']}");
+    await ProfileService.updateProfile(
+      fullName: _nameController.text,
+      phone: _phoneController.text,
+      email: _emailController.text,
+      avatarUrl: _selectedAvatarUrl,
+      bio: _bioController.text,
+      location: _locationController.text,
+    );
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -302,32 +429,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       clipBehavior: Clip.none,
                       alignment: Alignment.bottomRight,
                       children: [
-                        Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                            border:
-                                Border.all(color: Colors.white, width: 5),
-                          ),
-                          child: ClipOval(
-                            child: _selectedAvatarUrl.isNotEmpty
-                                ? Image.network(
-                                    _selectedAvatarUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        _avatarFallback(),
-                                  )
-                                : _avatarFallback(),
-                          ),
+                        AvatarWidget(
+                          avatarUrl: _selectedAvatarUrl,
+                          name: _nameController.text,
+                          size: 120,
+                          backgroundColor: Colors.white,
+                          border: Border.all(color: Colors.white, width: 5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         Positioned(
                           bottom: 2,
@@ -399,6 +513,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   controller: _phoneController,
                   hint: 'e.g. +92 300 1234567',
                   keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 24),
+                _fieldLabel('Location'),
+                const SizedBox(height: 8),
+                _styledField(
+                  controller: _locationController,
+                  hint: 'e.g. Gilgit-Baltistan',
+                ),
+                const SizedBox(height: 24),
+                _fieldLabel('Bio'),
+                const SizedBox(height: 8),
+                _styledField(
+                  controller: _bioController,
+                  hint: 'Tell us a bit about yourself...',
+                  maxLines: 3,
                 ),
                 const SizedBox(height: 34),
                 CustomButton(
@@ -477,11 +606,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required String hint,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    int maxLines = 1,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
+      maxLines: maxLines,
       style: GoogleFonts.outfit(
         fontSize: 16,
         fontWeight: FontWeight.w500,
