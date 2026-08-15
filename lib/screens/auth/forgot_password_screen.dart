@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/app_images.dart';
 import '../../core/utils/helpers.dart';
+import 'login_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -14,23 +15,57 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
+  final otpController = TextEditingController();
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+
   bool isLoading = false;
   bool _emailSent = false;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
 
-  Future<void> _sendResetLink() async {
-    if (!_formKey.currentState!.validate()) return;
+  void _goBack() {
+    if (_emailSent) {
+      setState(() => _emailSent = false);
+      return;
+    }
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      _navigateToLogin();
+    }
+  }
+
+  void _navigateToLogin() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _sendResetLink({bool isResend = false}) async {
+    if (!isResend) {
+      if (!_formKey.currentState!.validate()) return;
+    }
+    final email = emailController.text.trim();
+    if (email.isEmpty ||
+        !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      Helpers.showSnackBar(context, 'Please enter a valid email address.');
+      setState(() => _emailSent = false);
+      return;
+    }
 
     setState(() => isLoading = true);
 
     try {
-      final email = emailController.text.trim();
       await Supabase.instance.client.auth.resetPasswordForEmail(email);
 
       if (mounted) {
         setState(() => _emailSent = true);
         Helpers.showSnackBar(
           context,
-          'Password reset link sent to $email! Please check your inbox.',
+          'Reset code sent to $email! Please check your inbox or spam folder.',
         );
       }
     } on AuthException catch (e) {
@@ -44,10 +79,69 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Helpers.showSnackBar(context, message);
       }
     } catch (e) {
+      debugPrint('Supabase reset password request error: $e');
       if (mounted) {
         Helpers.showSnackBar(
           context,
-          'Connection Error: Please check your internet connection.',
+          'Network error. Please check your internet and try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final email = emailController.text.trim();
+    final otp = otpController.text.trim();
+    final newPassword = newPasswordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
+
+    if (newPassword != confirmPassword) {
+      Helpers.showSnackBar(context, 'Passwords do not match.');
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      if (otp.isNotEmpty) {
+        await Supabase.instance.client.auth.verifyOTP(
+          email: email,
+          token: otp,
+          type: OtpType.recovery,
+        );
+      }
+
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+
+      if (mounted) {
+        Helpers.showSnackBar(
+          context,
+          'Password reset successfully! Please login with your new password.',
+        );
+        _navigateToLogin();
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        String message = e.message;
+        if (message.toLowerCase().contains("token") ||
+            message.toLowerCase().contains("otp") ||
+            message.toLowerCase().contains("invalid")) {
+          message = "Invalid or expired reset code. Please request a new code.";
+        }
+        Helpers.showSnackBar(context, message);
+      }
+    } catch (e) {
+      debugPrint('Supabase password reset update error: $e');
+      if (mounted) {
+        Helpers.showSnackBar(
+          context,
+          'Network error. Please check your internet and try again.',
         );
       }
     } finally {
@@ -58,6 +152,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void dispose() {
     emailController.dispose();
+    otpController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -86,7 +183,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _goBack,
                   icon: Icon(
                     Icons.arrow_back_ios_new_rounded,
                     size: 20,
@@ -103,12 +200,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      SizedBox(height: screenSize.height * 0.04),
+                      SizedBox(height: screenSize.height * 0.03),
 
                       // ── Lock Icon Image ──
                       SizedBox(
-                        height: 160,
-                        width: 160,
+                        height: 140,
+                        width: 140,
                         child: Image.asset(
                           AppImages.forgotPassword,
                           fit: BoxFit.contain,
@@ -138,7 +235,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       // ── Subtitle ──
                       Text(
                         _emailSent
-                            ? 'A reset link has been sent to ${emailController.text.trim()}. Please check your inbox or spam folder to reset your password.'
+                            ? 'A reset code has been sent to ${emailController.text.trim()}. Please check your email and enter the OTP code and your new password below.'
                             : 'Enter your email address and we\'ll send you instructions to reset your password.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
@@ -147,7 +244,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           height: 1.55,
                         ),
                       ),
-                      SizedBox(height: screenSize.height * 0.04),
+                      SizedBox(height: screenSize.height * 0.03),
 
                       if (!_emailSent) ...[
                         // ── Email Label ──
@@ -223,7 +320,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF067A46),
                               disabledBackgroundColor:
-                                  const Color(0xFF067A46).withValues(alpha: 0.6),
+                                  const Color(0xFF067A46).withOpacity(0.6),
                               foregroundColor: Colors.white,
                               disabledForegroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
@@ -250,16 +347,179 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
                       ] else ...[
-                        // ── Resend & Back options after email sent ──
+                        // ── Reset Code / OTP Field ──
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'OTP Code / Reset Token',
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: textNavy,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: otpController,
+                          keyboardType: TextInputType.number,
+                          style: GoogleFonts.outfit(fontSize: 15, color: textPrimary),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: inputFill,
+                            hintText: 'Enter 6-digit code from email',
+                            hintStyle: GoogleFonts.outfit(color: textHint),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFF067A46), width: 1.5),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) {
+                              return 'Enter reset code from your email';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── New Password Field ──
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'New Password',
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: textNavy,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: newPasswordController,
+                          obscureText: _obscureNewPassword,
+                          style: GoogleFonts.outfit(fontSize: 15, color: textPrimary),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: inputFill,
+                            hintText: 'Enter new password',
+                            hintStyle: GoogleFonts.outfit(color: textHint),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFF067A46), width: 1.5),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureNewPassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: textHint,
+                                size: 20,
+                              ),
+                              onPressed: () => setState(
+                                  () => _obscureNewPassword = !_obscureNewPassword),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val == null || val.trim().length < 6) {
+                              return 'Password must be at least 6 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Confirm Password Field ──
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Confirm New Password',
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: textNavy,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          style: GoogleFonts.outfit(fontSize: 15, color: textPrimary),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: inputFill,
+                            hintText: 'Re-enter new password',
+                            hintStyle: GoogleFonts.outfit(color: textHint),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFF067A46), width: 1.5),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: textHint,
+                                size: 20,
+                              ),
+                              onPressed: () => setState(
+                                  () => _obscureConfirmPassword = !_obscureConfirmPassword),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val != newPasswordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        // ── Reset Password Button ──
                         SizedBox(
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: isLoading ? null : _sendResetLink,
+                            onPressed: isLoading ? null : _resetPassword,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF067A46),
                               disabledBackgroundColor:
-                                  const Color(0xFF067A46).withValues(alpha: 0.6),
+                                  const Color(0xFF067A46).withOpacity(0.6),
                               foregroundColor: Colors.white,
                               disabledForegroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
@@ -277,13 +537,45 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                     ),
                                   )
                                 : Text(
-                                    'Resend Link',
+                                    'Reset Password',
                                     style: GoogleFonts.outfit(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
                           ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Options Row (Resend Code / Change Email) ──
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            TextButton.icon(
+                              onPressed: isLoading ? null : () => _sendResetLink(isResend: true),
+                              icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF067A46)),
+                              label: Text(
+                                'Resend Code',
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF067A46),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => setState(() => _emailSent = false),
+                              icon: Icon(Icons.edit_outlined, size: 16, color: textSecondary),
+                              label: Text(
+                                'Change Email',
+                                style: GoogleFonts.outfit(
+                                  color: textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
 
@@ -301,7 +593,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => Navigator.pop(context),
+                            onTap: _goBack,
                             child: Text(
                               'Login',
                               style: GoogleFonts.outfit(

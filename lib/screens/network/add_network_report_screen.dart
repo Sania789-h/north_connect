@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/helpers.dart';
 import '../../widgets/custom_button.dart';
 import '../../services/mock_database_service.dart';
+import '../main_navigation_screen.dart';
 
 class AddNetworkReportScreen extends StatefulWidget {
   const AddNetworkReportScreen({super.key});
@@ -128,6 +129,13 @@ class _AddNetworkReportScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text("Add Network Report"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => Helpers.pop(
+            context,
+            fallbackPage: const MainNavigationScreen(),
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

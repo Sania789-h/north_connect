@@ -10,6 +10,7 @@ import '../../services/mock_database_service.dart';
 import '../../widgets/avatar_widget.dart';
 import '../auth/login_screen.dart';
 import '../alerts/alerts_screen.dart';
+import '../main_navigation_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'help_support_screen.dart';
@@ -30,6 +31,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _profileFuture = getProfile();
+  }
+
+  void _goBack() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      );
+    }
   }
 
   Future<Map<String, dynamic>?> getProfile() async {
@@ -401,7 +413,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       if (widget.showBackButton)
                         IconButton(
-                          onPressed: () => Navigator.maybePop(context),
+                          onPressed: _goBack,
                           icon: Icon(
                             Icons.arrow_back_ios_new_rounded,
                             color: backIconColor,

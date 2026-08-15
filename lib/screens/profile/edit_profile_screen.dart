@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/profile_service.dart';
 import '../../widgets/avatar_widget.dart';
 import '../../widgets/custom_button.dart';
+import 'profile_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> currentProfile;
@@ -86,6 +87,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _bioController.dispose();
     _locationController.dispose();
     super.dispose();
+  }
+
+  void _goBack() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ProfileScreen(showBackButton: true),
+        ),
+      );
+    }
   }
 
   String get _initial {
@@ -404,7 +418,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Row(
                   children: [
                     _roundBtn(
-                      onTap: () => Navigator.maybePop(context),
+                      onTap: _goBack,
                       icon: Icons.arrow_back_ios_new_rounded,
                     ),
                     Expanded(

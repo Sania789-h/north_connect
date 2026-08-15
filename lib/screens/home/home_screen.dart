@@ -635,22 +635,23 @@ class _HomeScreenState extends State<HomeScreen>
               color: textColor,
             ),
           ),
-          GestureDetector(
-            onTap: onViewAll,
-            child: Row(
-              children: [
-                Text(
-                  'View All',
-                  style: GoogleFonts.outfit(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: viewAllColor,
+          if (onViewAll != null)
+            GestureDetector(
+              onTap: onViewAll,
+              child: Row(
+                children: [
+                  Text(
+                    'View All',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: viewAllColor,
+                    ),
                   ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: viewAllColor, size: 16),
-              ],
+                  Icon(Icons.chevron_right_rounded, color: viewAllColor, size: 16),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -667,7 +668,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Quick Access', textColor, viewAllColor, onViewAll: () => widget.onNavigateTab?.call(1)),
+        _buildSectionHeader('Quick Access', textColor, viewAllColor),
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),

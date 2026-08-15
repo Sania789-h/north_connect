@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/constants/app_images.dart';
+import '../../core/utils/helpers.dart';
 import '../../services/weather_service.dart';
+import '../main_navigation_screen.dart';
 
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
@@ -206,14 +208,14 @@ class _WeatherScreenState
                 elevation: 0,
 
                 leading: IconButton(
-                  onPressed: () {
-                    Navigator.maybePop(
-                      context,
-                    );
-                  },
+                  onPressed: () => Helpers.pop(
+                    context,
+                    fallbackPage: const MainNavigationScreen(),
+                  ),
                   icon: const Icon(
-                    Icons.arrow_back_rounded,
+                    Icons.arrow_back_ios_new_rounded,
                     color: Colors.white,
+                    size: 20,
                   ),
                 ),
 

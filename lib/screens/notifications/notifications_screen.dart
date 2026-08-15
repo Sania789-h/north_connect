@@ -5,6 +5,7 @@ import '../../core/utils/helpers.dart';
 import '../../models/notification_model.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/loading_widget.dart';
+import '../main_navigation_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -410,7 +411,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Helpers.pop(context),
+            onPressed: () => Helpers.pop(
+              context,
+              fallbackPage: const MainNavigationScreen(),
+            ),
             style: IconButton.styleFrom(
               backgroundColor: iconBtnBg,
               padding: const EdgeInsets.all(10),

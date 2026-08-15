@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/helpers.dart';
 import '../../services/auth_service.dart';
 import '../main_navigation_screen.dart';
+import 'login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -26,6 +27,17 @@ class _SignupScreenState extends State<SignupScreen> {
   bool isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+
+  void _goBack() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
+  }
 
   Future<void> signupUser() async {
     if (!_formKey.currentState!.validate()) return;
@@ -307,11 +319,22 @@ class _SignupScreenState extends State<SignupScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      onPressed: _goBack,
+                      icon: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 20,
+                        color: textNavy,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
 
                   const Icon(
                     Icons.person_add_alt_1_rounded,
-                    size: 65,
+                    size: 60,
                     color: Color(0xFF067A46),
                   ),
 
@@ -574,9 +597,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
+                        onTap: _goBack,
                         child: Text(
                           "Login",
                           style: GoogleFonts.outfit(

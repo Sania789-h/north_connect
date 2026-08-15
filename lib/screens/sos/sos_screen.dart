@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/helpers.dart';
 import '../../services/sos_service.dart';
 import '../../widgets/sos_button.dart';
+import '../main_navigation_screen.dart';
 
 class SOSSenderScreen extends StatefulWidget {
   const SOSSenderScreen({super.key});
@@ -179,7 +180,10 @@ class _SOSSenderScreenState extends State<SOSSenderScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () => Helpers.pop(context),
+                    onPressed: () => Helpers.pop(
+                      context,
+                      fallbackPage: const MainNavigationScreen(),
+                    ),
                     icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
                       color: iconColor,

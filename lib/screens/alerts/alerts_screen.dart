@@ -8,6 +8,7 @@ import '../../widgets/alert_card.dart';
 import '../../services/mock_database_service.dart';
 import 'alert_details_screen.dart';
 import 'add_alert_sheet.dart';
+import '../main_navigation_screen.dart';
 
 class AlertsScreen extends StatefulWidget {
   const AlertsScreen({super.key});
@@ -26,10 +27,23 @@ class _AlertsScreenState extends State<AlertsScreen> {
     'SOS',
   ];
   String _selectedFilter = 'All';
-  Key _refreshKey = UniqueKey();
+  late Future<List<AlertModel>> _alertsFuture;
   bool _creating = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _alertsFuture = _getAlerts();
+  }
+
+  void _refreshAlerts() {
+    setState(() {
+      _alertsFuture = _getAlerts();
+    });
+  }
+
   Future<List<AlertModel>> _getAlerts() async {
+    await MockDatabaseService.loadReadAlertIds();
     try {
       final data = await Supabase.instance.client
           .from('alerts')
@@ -47,6 +61,12 @@ class _AlertsScreenState extends State<AlertsScreen> {
       combined.addAll(localAlerts.where((a) => a.id != null && !existingIds.contains(a.id)));
       combined.addAll(dbAlerts);
 
+      for (var a in combined) {
+        if (MockDatabaseService.isAlertRead(a.id)) {
+          a.isRead = true;
+        }
+      }
+
       combined.sort((a, b) {
         final dateA = a.createdAt ?? DateTime.now();
         final dateB = b.createdAt ?? DateTime.now();
@@ -56,7 +76,13 @@ class _AlertsScreenState extends State<AlertsScreen> {
       return combined;
     } catch (e) {
       debugPrint("Supabase alerts query failed, using offline fallback: $e");
-      return MockDatabaseService.alerts;
+      final localAlerts = MockDatabaseService.alerts;
+      for (var a in localAlerts) {
+        if (MockDatabaseService.isAlertRead(a.id)) {
+          a.isRead = true;
+        }
+      }
+      return localAlerts;
     }
   }
 
@@ -113,10 +139,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
       if (!mounted) return;
       Helpers.showSnackBar(context, 'Alert added successfully.');
-      setState(() {
-        _refreshKey = UniqueKey();
-        _selectedFilter = 'All';
-      });
+      _selectedFilter = 'All';
+      _refreshAlerts();
     } finally {
       if (mounted) setState(() => _creating = false);
     }
@@ -169,7 +193,10 @@ class _AlertsScreenState extends State<AlertsScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
+                    onPressed: () => Helpers.pop(
+                      context,
+                      fallbackPage: const MainNavigationScreen(),
+                    ),
                     icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
                       color: iconColor,
@@ -249,12 +276,11 @@ class _AlertsScreenState extends State<AlertsScreen> {
               child: RefreshIndicator(
                 onRefresh: () async {
                   HapticFeedback.lightImpact();
-                  setState(() => _refreshKey = UniqueKey());
+                  _refreshAlerts();
                 },
                 color: const Color(0xFF067A46),
                 child: FutureBuilder<List<AlertModel>>(
-                  key: _refreshKey,
-                  future: _getAlerts(),
+                  future: _alertsFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState ==
                         ConnectionState.waiting) {
@@ -355,11 +381,18 @@ class _AlertsScreenState extends State<AlertsScreen> {
                           padding: const EdgeInsets.only(bottom: 12),
                           child: AlertCard(
                             alert: alert,
-                            onTap: () {
-                              Helpers.push(
+                            onTap: () async {
+                              setState(() {
+                                alert.isRead = true;
+                              });
+                              MockDatabaseService.markAlertAsRead(alert.id);
+                              await Helpers.push(
                                 context,
                                 AlertDetailsScreen(alert: alert),
                               );
+                              if (mounted) {
+                                setState(() {});
+                              }
                             },
                           ),
                         );

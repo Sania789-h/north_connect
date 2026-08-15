@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/utils/helpers.dart';
+import '../main_navigation_screen.dart';
 
 class ScomLogo extends StatelessWidget {
   const ScomLogo({super.key});
@@ -109,15 +111,17 @@ class _NetworkScreenState extends State<NetworkScreen> {
             children: [
               Row(
                 children: [
-                  if (Navigator.canPop(context))
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 20,
-                        color: iconColor,
-                      ),
+                  IconButton(
+                    onPressed: () => Helpers.pop(
+                      context,
+                      fallbackPage: const MainNavigationScreen(),
                     ),
+                    icon: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                      color: iconColor,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),

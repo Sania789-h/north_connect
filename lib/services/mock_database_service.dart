@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/alert_model.dart';
 import '../models/notification_model.dart';
 
 class MockDatabaseService {
+  static final Set<String> _readAlertIds = {};
   static final List<NotificationModel> _notifications = [
     NotificationModel(
       id: 'n1',
@@ -258,6 +261,48 @@ class MockDatabaseService {
   // Add Methods
   static void addAlert(AlertModel alert) {
     _alerts.insert(0, alert);
+  }
+
+  static bool isAlertRead(String? id) {
+    if (id == null || id.isEmpty) return false;
+    return _readAlertIds.contains(id);
+  }
+
+  static Future<void> loadReadAlertIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedList = prefs.getStringList('read_alert_ids');
+      if (savedList != null) {
+        _readAlertIds.addAll(savedList);
+      }
+    } catch (_) {}
+  }
+
+  static void markAlertAsRead(String? id) {
+    if (id == null || id.isEmpty) return;
+    _readAlertIds.add(id);
+
+    final index = _alerts.indexWhere((a) => a.id == id);
+    if (index != -1) {
+      _alerts[index].isRead = true;
+    }
+
+    try {
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setStringList('read_alert_ids', _readAlertIds.toList());
+      });
+    } catch (_) {}
+
+    try {
+      Supabase.instance.client
+          .from('alerts')
+          .update({'is_read': true})
+          .eq('id', id)
+          .then((_) {})
+          .catchError((e) {
+            debugPrint('Failed to update alert is_read in Supabase: $e');
+          });
+    } catch (_) {}
   }
 
   static void updateOfflineProfile(Map<String, dynamic> profile) {

@@ -32,8 +32,12 @@ class Helpers {
     );
   }
 
-  // Pop screen
-  static void pop(BuildContext context) {
-    Navigator.pop(context);
+  // Pop screen with fallback handling
+  static void pop(BuildContext context, {Widget? fallbackPage}) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else if (fallbackPage != null) {
+      pushReplacement(context, fallbackPage);
+    }
   }
 }
