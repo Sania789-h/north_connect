@@ -66,7 +66,7 @@ class SOSService {
     } on TimeoutException {
       return const LocationResult(
         success: false,
-        errorMessage: 'Location requests timed out. Please try again with a clear view of the sky.',
+        errorMessage: 'Location request timed out. Please try again with a clear view of the sky.',
       );
     } catch (e) {
       debugPrint('getCurrentLocation error: $e');
