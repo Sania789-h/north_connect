@@ -51,7 +51,7 @@ class SOSService {
         return const LocationResult(
           success: false,
           errorMessage:
-              'Location permissions is permanently denied. Please open App Settings → Permissions → enable Location.',
+              'Location permission is permanently denied. Please open App Settings → Permissions → enable Location.',
         );
       }
 
