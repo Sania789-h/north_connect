@@ -28,7 +28,7 @@ class AlertModel {
 
     if (diff.inDays >= 1) {
       return '${diff.inDays}d ago';
-    } else if (diff.inHour>= 1) {
+    } else if (diff.inHours>= 1) {
       return '${diff.inHours}h ago';
     } else if (diff.inMinutes >= 1) {
       return '${diff.inMinutes}m ago';
