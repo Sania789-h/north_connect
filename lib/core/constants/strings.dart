@@ -1,7 +1,7 @@
 class AppStrings {
-  static const appName = "GB Connect";
+  static const appName = "North Connect";
 
-  static const welcome = "Welcome to GB Connect";
+  static const welcome = "Welcome to North Connect";
   static const login = "Login";
   static const signup = "Sign Up";
 

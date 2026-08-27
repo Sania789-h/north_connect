@@ -17,9 +17,16 @@ class _AddAlertSheetState extends State<AddAlertSheet> {
   final _locationCtrl = TextEditingController(text: 'Gilgit, Pakistan');
 
   static const List<_CatDef> _categories = [
-    _CatDef('Emergency Alert', Color(0xFFDC2626), Icons.warning_amber_rounded),
+    _CatDef('Emergency', Color(0xFFDC2626), Icons.warning_amber_rounded),
+    _CatDef('Landslide', Color(0xFFB45309), Icons.landslide_rounded),
+    _CatDef('Road Blocked', Color(0xFFEA580C), Icons.block_rounded),
+    _CatDef('Road Closed', Color(0xFFD97706), Icons.do_not_disturb_on_rounded),
+    _CatDef('Heavy Snowfall', Color(0xFF0284C7), Icons.ac_unit_rounded),
+    _CatDef('Heavy Rain', Color(0xFF2563EB), Icons.water_drop_rounded),
+    _CatDef('Flooded Road', Color(0xFF0891B2), Icons.flood_rounded),
+    _CatDef('Road Damage', Color(0xFF7C2D12), Icons.construction_rounded),
+    _CatDef('Heavy Traffic', Color(0xFF4F46E5), Icons.traffic_rounded),
     _CatDef('Weather', Color(0xFF0EA5E9), Icons.wb_cloudy_rounded),
-    _CatDef('Road Alert', Color(0xFFF97316), Icons.directions_car_rounded),
     _CatDef('Network', Color(0xFF6366F1), Icons.signal_cellular_alt_rounded),
     _CatDef('SOS', Color(0xFFE11D48), Icons.sos_rounded),
   ];

@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/constants/colors.dart';
 import '../../services/auth_service.dart';
 import '../../services/mock_database_service.dart';
 import '../../widgets/avatar_widget.dart';
@@ -15,6 +14,7 @@ import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'help_support_screen.dart';
 import 'about_app_screen.dart';
+import '../emergency/emergency_contacts_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool showBackButton;
@@ -219,13 +219,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         false;
   }
 
-  void _navigate(Widget screen) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => screen),
-    );
-  }
-
   void _navigateAlerts() {
     Navigator.push(
       context,
@@ -329,14 +322,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC);
-    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
-    final tileIconColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B);
-    final dividerColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
     final avatarPlaceholder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final backIconColor = isDark ? Colors.white : const Color(0xFF1E293B);
-    final chevronColor = const Color(0xFF94A3B8);
     final logoutBg = isDark ? const Color(0xFF1E293B) : Colors.white;
 
     return Scaffold(
@@ -400,8 +389,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               : (metaAvatar2.isNotEmpty ? metaAvatar2 : fallbackAvatar);
           debugPrint(
               "Profile build: rawAvatar=$rawAvatar metaAvatar=$metaAvatar2 finalAvatar=$avatarUrl");
-          final initial =
-              name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
           return SafeArea(
             child: SingleChildScrollView(
@@ -526,6 +513,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 6),
                   _tile(
+                    icon: Icons.contact_phone_outlined,
+                    title: 'Emergency Contacts',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EmergencyContactsScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  _tile(
                     icon: Icons.settings_rounded,
                     title: 'Settings',
                     onTap: _navigateSettings,
@@ -586,22 +584,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _avatarFallback(String initial) {
-    return Container(
-      color: const Color(0xFF1B547A),
-      child: Center(
-        child: Text(
-          initial,
-          style: GoogleFonts.outfit(
-            fontSize: 46,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
       ),
     );
   }

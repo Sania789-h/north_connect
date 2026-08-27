@@ -172,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
                   
-                  // App Title (GB CONNECT)
+                  // App Title (NORTH CONNECT)
                   RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
@@ -183,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       children: const [
                         TextSpan(
-                          text: 'GB ',
+                          text: 'NORTH ',
                           style: TextStyle(
                             color: Color(0xFF0F2C59), // Deep Navy Blue
                           ),

@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../services/auth_service.dart';
 import '../../services/settings_notifier.dart';
-import '../../services/settings_service.dart';
+import '../auth/login_screen.dart';
+import '../emergency/emergency_contacts_screen.dart';
 import '../main_navigation_screen.dart';
+import '../sos/sos_screen.dart';
+import 'about_app_screen.dart';
+import 'edit_profile_screen.dart';
+import 'help_support_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'terms_conditions_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -26,6 +35,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!_notifier.loaded) {
       _notifier.load().ignore();
     }
+  }
+
+  @override
+  void dispose() {
+    _notifier.removeListener(_onSettings);
+    super.dispose();
   }
 
   void _goBack() {
@@ -50,7 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: const Color(0xFF067A46),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 1, milliseconds: 400),
+        duration: const Duration(seconds: 1, milliseconds: 600),
       ),
     );
   }
@@ -73,38 +88,179 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) _toast(v ? 'Dark mode enabled' : 'Dark mode disabled');
   }
 
-  Future<void> _pickLanguage() async {
+  Future<void> _changePassword() async {
     HapticFeedback.selectionClick();
-    final chosen = await showModalBottomSheet<String>(
+    final passCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = dark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = dark ? Colors.white : const Color(0xFF1E293B);
+
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _SelectionSheet(
-        title: 'Language',
-        options: SettingsService.languages,
-        current: _notifier.language,
+      useSafeArea: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: dark ? const Color(0xFF475569) : const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Change Password',
+                  style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w700, color: textColor),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: passCtrl,
+                  obscureText: true,
+                  validator: (v) => (v == null || v.length < 6) ? 'Password must be at least 6 characters' : null,
+                  style: GoogleFonts.outfit(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: 'New Password',
+                    hintText: 'Enter new password',
+                    labelStyle: GoogleFonts.outfit(color: dark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Color(0xFF067A46), width: 1.6),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: confirmCtrl,
+                  obscureText: true,
+                  validator: (v) => (v != passCtrl.text) ? 'Passwords do not match' : null,
+                  style: GoogleFonts.outfit(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: 'Confirm New Password',
+                    hintText: 'Re-enter new password',
+                    labelStyle: GoogleFonts.outfit(color: dark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Color(0xFF067A46), width: 1.6),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (!formKey.currentState!.validate()) return;
+                      try {
+                        await Supabase.instance.client.auth.updateUser(
+                          UserAttributes(password: passCtrl.text.trim()),
+                        );
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                          _toast('Password updated successfully');
+                        }
+                      } catch (e) {
+                        if (ctx.mounted) {
+                          _toast('Failed to update password: $e');
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF067A46),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text('Update Password', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
-    if (chosen == null || chosen == _notifier.language) return;
-    await _notifier.setLanguage(chosen);
-    if (mounted) _toast('Language changed to $chosen');
   }
 
-  Future<void> _pickUnits() async {
-    HapticFeedback.selectionClick();
-    final chosen = await showModalBottomSheet<String>(
+  Future<void> _logout() async {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final confirmed = await showDialog<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _SelectionSheet(
-        title: 'Units',
-        options: SettingsService.unitsOptions,
-        current: _notifier.units,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: dark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Logout',
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w700,
+            color: dark ? Colors.white : _textColor,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to log out of North Connect?',
+          style: GoogleFonts.outfit(
+            color: dark ? const Color(0xFFCBD5E1) : _textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.outfit(color: dark ? const Color(0xFFCBD5E1) : _textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Logout', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
-    if (chosen == null || chosen == _notifier.units) return;
-    await _notifier.setUnits(chosen);
-    if (mounted) _toast('Units changed to $chosen');
+
+    if (confirmed == true && mounted) {
+      await AuthService().signOut();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    }
   }
 
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
@@ -136,6 +292,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
+            // Top Bar
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
@@ -162,6 +319,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+
+            // ═══════════════════════════════════════════════
+            // SECTION 1: ACCOUNT
+            // ═══════════════════════════════════════════════
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+                child: Text(
+                  'ACCOUNT',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    color: const Color(0xFF067A46),
+                  ),
+                ),
+              ),
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -181,6 +356,108 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     borderRadius: BorderRadius.circular(20),
                     child: Column(
                       children: [
+                        _navTile(
+                          icon: Icons.person_outline_rounded,
+                          title: 'Edit Profile',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                            );
+                          },
+                          dark: dark,
+                          textColor: textColor,
+                          subColor: subColor,
+                        ),
+                        _divider(dark),
+                        _navTile(
+                          icon: Icons.lock_outline_rounded,
+                          title: 'Change Password',
+                          onTap: _changePassword,
+                          dark: dark,
+                          textColor: textColor,
+                          subColor: subColor,
+                        ),
+                        _divider(dark),
+                        _navTile(
+                          icon: Icons.logout_rounded,
+                          title: 'Logout',
+                          onTap: _logout,
+                          dark: dark,
+                          textColor: const Color(0xFFEF4444),
+                          subColor: const Color(0xFFEF4444),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ═══════════════════════════════════════════════
+            // SECTION 2: SAFETY
+            // ═══════════════════════════════════════════════
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+                child: Text(
+                  'SAFETY',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    color: const Color(0xFF067A46),
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: dark ? Colors.black.withValues(alpha: 0.35) : const Color(0x0E000000),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Column(
+                      children: [
+                        _navTile(
+                          icon: Icons.contact_phone_outlined,
+                          title: 'Emergency Contacts',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const EmergencyContactsScreen()),
+                            );
+                          },
+                          dark: dark,
+                          textColor: textColor,
+                          subColor: subColor,
+                        ),
+                        _divider(dark),
+                        _navTile(
+                          icon: Icons.sos_rounded,
+                          title: 'SOS Settings',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const SOSSenderScreen()),
+                            );
+                          },
+                          dark: dark,
+                          textColor: textColor,
+                          subColor: subColor,
+                        ),
+                        _divider(dark),
                         _toggleTile(
                           icon: Icons.notifications_none_rounded,
                           title: 'Push Notifications',
@@ -189,13 +466,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           dark: dark,
                           textColor: textColor,
                         ),
-                        Divider(
-                            height: 1,
-                            indent: 16,
-                            endIndent: 16,
-                            color: dark
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : const Color(0xFFF1F5F9)),
+                        _divider(dark),
                         _toggleTile(
                           icon: Icons.volume_up_rounded,
                           title: 'Alert Sounds',
@@ -204,13 +475,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           dark: dark,
                           textColor: textColor,
                         ),
-                        Divider(
-                            height: 1,
-                            indent: 16,
-                            endIndent: 16,
-                            color: dark
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : const Color(0xFFF1F5F9)),
+                        _divider(dark),
                         _toggleTile(
                           icon: dark ? Icons.dark_mode_rounded : Icons.dark_mode_outlined,
                           title: 'Dark Mode',
@@ -219,34 +484,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           dark: dark,
                           textColor: textColor,
                         ),
-                        Divider(
-                            height: 1,
-                            indent: 16,
-                            endIndent: 16,
-                            color: dark
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : const Color(0xFFF1F5F9)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ═══════════════════════════════════════════════
+            // SECTION 3: INFORMATION
+            // ═══════════════════════════════════════════════
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+                child: Text(
+                  'INFORMATION',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    color: const Color(0xFF067A46),
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: dark ? Colors.black.withValues(alpha: 0.35) : const Color(0x0E000000),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Column(
+                      children: [
                         _navTile(
-                          icon: Icons.language_rounded,
-                          title: 'Language',
-                          value: s.language,
-                          onTap: _pickLanguage,
+                          icon: Icons.help_outline_rounded,
+                          title: 'Help & FAQ',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+                            );
+                          },
                           dark: dark,
                           textColor: textColor,
                           subColor: subColor,
                         ),
-                        Divider(
-                            height: 1,
-                            indent: 16,
-                            endIndent: 16,
-                            color: dark
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : const Color(0xFFF1F5F9)),
+                        _divider(dark),
                         _navTile(
                           icon: Icons.info_outline_rounded,
-                          title: 'Units',
-                          value: s.units,
-                          onTap: _pickUnits,
+                          title: 'About North Connect',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AboutAppScreen()),
+                            );
+                          },
+                          dark: dark,
+                          textColor: textColor,
+                          subColor: subColor,
+                        ),
+                        _divider(dark),
+                        _navTile(
+                          icon: Icons.privacy_tip_outlined,
+                          title: 'Privacy Policy',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                            );
+                          },
+                          dark: dark,
+                          textColor: textColor,
+                          subColor: subColor,
+                        ),
+                        _divider(dark),
+                        _navTile(
+                          icon: Icons.description_outlined,
+                          title: 'Terms & Conditions',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const TermsConditionsScreen()),
+                            );
+                          },
                           dark: dark,
                           textColor: textColor,
                           subColor: subColor,
@@ -257,11 +588,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
                 child: Text(
-                  'Changes save automatically & apply instantly.',
+                  'North Connect v1.0.0+1 • Gilgit-Baltistan',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.outfit(
                     fontSize: 12,
@@ -274,6 +606,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _divider(bool dark) {
+    return Divider(
+      height: 1,
+      indent: 16,
+      endIndent: 16,
+      color: dark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF1F5F9),
     );
   }
 
@@ -292,13 +633,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-                color: dark ? Colors.black.withValues(alpha: 0.25) : const Color(0x0F000000),
-                blurRadius: 8,
-                offset: const Offset(0, 2)),
+              color: dark ? Colors.black.withValues(alpha: 0.25) : const Color(0x0F000000),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
-        child: Icon(icon,
-            size: 18, color: dark ? Colors.white : const Color(0xFF1E293B)),
+        child: Icon(icon, size: 18, color: dark ? Colors.white : const Color(0xFF1E293B)),
       ),
     );
   }
@@ -321,13 +662,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
-              Icon(icon, size: 28, color: textColor),
+              Icon(icon, size: 26, color: textColor),
               const SizedBox(width: 18),
               Expanded(
                 child: Text(
                   title,
                   style: GoogleFonts.outfit(
-                    fontSize: 17,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: textColor,
                   ),
@@ -335,16 +676,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(width: 10),
               Transform.scale(
-                scale: 1.1,
+                scale: 1.0,
                 child: Switch(
                   value: value,
                   onChanged: onChanged,
-                  activeColor: Colors.white,
+                  activeThumbColor: Colors.white,
                   activeTrackColor: dark
                       ? const Color(0xFF22C55E).withValues(alpha: 0.9)
                       : const Color(0xFF067A46).withValues(alpha: 0.9),
-                  inactiveTrackColor:
-                      dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                  inactiveTrackColor: dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
                   inactiveThumbColor: Colors.white,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -359,7 +699,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _navTile({
     required IconData icon,
     required String title,
-    required String value,
+    String? value,
     required VoidCallback onTap,
     required bool dark,
     required Color textColor,
@@ -375,151 +715,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
-              Icon(icon, size: 28, color: textColor),
+              Icon(icon, size: 26, color: textColor),
               const SizedBox(width: 18),
               Expanded(
                 child: Text(
                   title,
                   style: GoogleFonts.outfit(
-                    fontSize: 17,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: textColor,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                value,
-                style: GoogleFonts.outfit(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: subColor,
+              if (value != null) ...[
+                const SizedBox(width: 10),
+                Text(
+                  value,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: subColor,
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(width: 6),
-              Icon(Icons.chevron_right_rounded,
-                  size: 22, color: subColor),
+              Icon(Icons.chevron_right_rounded, size: 22, color: subColor),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════
-// Selection Bottom Sheet
-// ═══════════════════════════════════════════════
-class _SelectionSheet extends StatelessWidget {
-  final String title;
-  final List<String> options;
-  final String current;
-
-  const _SelectionSheet({
-    required this.title,
-    required this.options,
-    required this.current,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final bg = dark ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = dark ? Colors.white : const Color(0xFF1E293B);
-
-    return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: dark ? const Color(0xFF475569) : const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(4))),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                Text('Select $title',
-                    style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: textColor)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          ...List.generate(options.length, (i) {
-            final opt = options[i];
-            final isSelected = opt == current;
-            final isLast = i == options.length - 1;
-            return Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => Navigator.pop(context, opt),
-                borderRadius: BorderRadius.circular(14),
-                splashColor: const Color(0xFF067A46).withValues(alpha: 0.05),
-                highlightColor: const Color(0xFF067A46).withValues(alpha: 0.025),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 14),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              opt,
-                              style: GoogleFonts.outfit(
-                                fontSize: 15,
-                                fontWeight: isSelected
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: isSelected
-                                    ? (dark ? const Color(0xFF22C55E) : const Color(0xFF067A46))
-                                    : textColor,
-                              ),
-                            ),
-                          ),
-                          if (isSelected)
-                            Container(
-                              width: 22,
-                              height: 22,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF067A46),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.check_rounded,
-                                color: Colors.white,
-                                size: 15,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (!isLast)
-                      Divider(
-                          height: 1,
-                          indent: 12,
-                          endIndent: 12,
-                          color: dark
-                              ? Colors.white.withValues(alpha: 0.06)
-                              : const Color(0xFFF1F5F9)),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
       ),
     );
   }

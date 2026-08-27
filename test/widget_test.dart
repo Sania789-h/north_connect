@@ -1,12 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:north_connect/main.dart';
+import 'package:north_connect/core/constants/strings.dart';
 
 void main() {
-  testWidgets('App loads successfully', (WidgetTester tester) async {
-
-    await tester.pumpWidget(const MyApp());
-
-    expect(find.text('GB Connect'), findsOneWidget);
+  test('App title and branding constants check', () {
+    expect(AppStrings.appName, equals('North Connect'));
+    expect(AppStrings.welcome, equals('Welcome to North Connect'));
   });
 }

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/helpers.dart';
+import '../../models/network_model.dart';
+import '../../services/network_service.dart';
 import '../main_navigation_screen.dart';
+import 'add_network_report_sheet.dart';
 
 class ScomLogo extends StatelessWidget {
   const ScomLogo({super.key});
@@ -87,6 +91,36 @@ class NetworkScreen extends StatefulWidget {
 }
 
 class _NetworkScreenState extends State<NetworkScreen> {
+  late Future<List<NetworkModel>> _reportsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshReports();
+  }
+
+  void _refreshReports() {
+    setState(() {
+      _reportsFuture = NetworkService.getNetworkReports();
+    });
+  }
+
+  Future<void> _handleAddReport() async {
+    HapticFeedback.lightImpact();
+    final result = await showModalBottomSheet<NetworkModel>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const AddNetworkReportSheet(),
+    );
+
+    if (result != null && mounted) {
+      Helpers.showSnackBar(context, 'Network report submitted successfully.');
+      _refreshReports();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -103,167 +137,313 @@ class _NetworkScreenState extends State<NetworkScreen> {
 
     return Scaffold(
       backgroundColor: bg,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _handleAddReport,
+        backgroundColor: const Color(0xFF067A46),
+        foregroundColor: Colors.white,
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        icon: const Icon(Icons.add_rounded, size: 22),
+        label: Text(
+          'Report Status',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+        ),
+      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Helpers.pop(
-                      context,
-                      fallbackPage: const MainNavigationScreen(),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            HapticFeedback.lightImpact();
+            _refreshReports();
+          },
+          color: const Color(0xFF067A46),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Helpers.pop(
+                        context,
+                        fallbackPage: const MainNavigationScreen(),
+                      ),
+                      icon: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 20,
+                        color: iconColor,
+                      ),
                     ),
-                    icon: Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 20,
-                      color: iconColor,
-                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+
+                Text(
+                  'Network',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: textPrimary,
                   ),
-                ],
-              ),
-              const SizedBox(height: 4),
-
-              Text(
-                'Network',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: textPrimary,
                 ),
-              ),
-              const SizedBox(height: 6),
+                const SizedBox(height: 6),
 
-              Text(
-                'Check real-time status of all\nmajor networks.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  color: textSecondary,
-                  height: 1.4,
+                Text(
+                  'Check real-time status of all\nmajor networks.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    color: textSecondary,
+                    height: 1.4,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
-              _buildCarrierCard(
-                name: 'SCOM',
-                status: 'Good',
-                signalBars: 4,
-                logoWidget: const ScomLogo(),
-                isDark: isDark,
-                cardBg: cardBg,
-                shadowColor: shadowColor,
-                borderColor: borderColor,
-                textPrimary: textPrimary,
-                inactiveBarColor: inactiveBarColor,
-                onTap: () => _showCarrierDetailsModal(
-                  context,
+                // Carrier Status Overview Cards
+                _buildCarrierCard(
                   name: 'SCOM',
                   status: 'Good',
+                  signalBars: 4,
                   logoWidget: const ScomLogo(),
-                  coverage: '98% 4G Coverage',
-                  speed: '35 Mbps',
-                  areas: 'Gilgit, Hunza, Skardu, Nagar',
                   isDark: isDark,
-                  sheetBg: cardBg,
+                  cardBg: cardBg,
+                  shadowColor: shadowColor,
+                  borderColor: borderColor,
                   textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                  dividerColor: dividerColor,
-                  handleColor: handleColor,
+                  inactiveBarColor: inactiveBarColor,
+                  onTap: () => _showCarrierDetailsModal(
+                    context,
+                    name: 'SCOM',
+                    status: 'Good',
+                    logoWidget: const ScomLogo(),
+                    coverage: '98% 4G Coverage',
+                    speed: '35 Mbps',
+                    areas: 'Gilgit, Hunza, Skardu, Nagar',
+                    isDark: isDark,
+                    sheetBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    dividerColor: dividerColor,
+                    handleColor: handleColor,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
 
-              _buildCarrierCard(
-                name: 'Jazz',
-                status: 'Good',
-                signalBars: 4,
-                logoWidget: const JazzLogo(),
-                isDark: isDark,
-                cardBg: cardBg,
-                shadowColor: shadowColor,
-                borderColor: borderColor,
-                textPrimary: textPrimary,
-                inactiveBarColor: inactiveBarColor,
-                onTap: () => _showCarrierDetailsModal(
-                  context,
+                _buildCarrierCard(
                   name: 'Jazz',
                   status: 'Good',
+                  signalBars: 4,
                   logoWidget: const JazzLogo(),
-                  coverage: '92% 4G Coverage',
-                  speed: '28 Mbps',
-                  areas: 'Gilgit City, Skardu, Chilas',
                   isDark: isDark,
-                  sheetBg: cardBg,
+                  cardBg: cardBg,
+                  shadowColor: shadowColor,
+                  borderColor: borderColor,
                   textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                  dividerColor: dividerColor,
-                  handleColor: handleColor,
+                  inactiveBarColor: inactiveBarColor,
+                  onTap: () => _showCarrierDetailsModal(
+                    context,
+                    name: 'Jazz',
+                    status: 'Good',
+                    logoWidget: const JazzLogo(),
+                    coverage: '92% 4G Coverage',
+                    speed: '28 Mbps',
+                    areas: 'Gilgit City, Skardu, Chilas',
+                    isDark: isDark,
+                    sheetBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    dividerColor: dividerColor,
+                    handleColor: handleColor,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
 
-              _buildCarrierCard(
-                name: 'Zong 4G',
-                status: 'Good',
-                signalBars: 4,
-                logoWidget: const ZongLogo(),
-                isDark: isDark,
-                cardBg: cardBg,
-                shadowColor: shadowColor,
-                borderColor: borderColor,
-                textPrimary: textPrimary,
-                inactiveBarColor: inactiveBarColor,
-                onTap: () => _showCarrierDetailsModal(
-                  context,
+                _buildCarrierCard(
                   name: 'Zong 4G',
                   status: 'Good',
+                  signalBars: 4,
                   logoWidget: const ZongLogo(),
-                  coverage: '90% 4G Coverage',
-                  speed: '30 Mbps',
-                  areas: 'Gilgit, Hunza, Ghizer',
                   isDark: isDark,
-                  sheetBg: cardBg,
+                  cardBg: cardBg,
+                  shadowColor: shadowColor,
+                  borderColor: borderColor,
                   textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                  dividerColor: dividerColor,
-                  handleColor: handleColor,
+                  inactiveBarColor: inactiveBarColor,
+                  onTap: () => _showCarrierDetailsModal(
+                    context,
+                    name: 'Zong 4G',
+                    status: 'Good',
+                    logoWidget: const ZongLogo(),
+                    coverage: '90% 4G Coverage',
+                    speed: '30 Mbps',
+                    areas: 'Gilgit, Hunza, Ghizer',
+                    isDark: isDark,
+                    sheetBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    dividerColor: dividerColor,
+                    handleColor: handleColor,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
 
-              _buildCarrierCard(
-                name: 'Telenor',
-                status: 'Fair',
-                signalBars: 2,
-                logoWidget: const TelenorLogo(),
-                isDark: isDark,
-                cardBg: cardBg,
-                shadowColor: shadowColor,
-                borderColor: borderColor,
-                textPrimary: textPrimary,
-                inactiveBarColor: inactiveBarColor,
-                onTap: () => _showCarrierDetailsModal(
-                  context,
+                _buildCarrierCard(
                   name: 'Telenor',
                   status: 'Fair',
+                  signalBars: 2,
                   logoWidget: const TelenorLogo(),
-                  coverage: '75% 3G/4G Coverage',
-                  speed: '12 Mbps (Maintenance)',
-                  areas: 'Gilgit, Astore, Deosai',
                   isDark: isDark,
-                  sheetBg: cardBg,
+                  cardBg: cardBg,
+                  shadowColor: shadowColor,
+                  borderColor: borderColor,
                   textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                  dividerColor: dividerColor,
-                  handleColor: handleColor,
+                  inactiveBarColor: inactiveBarColor,
+                  onTap: () => _showCarrierDetailsModal(
+                    context,
+                    name: 'Telenor',
+                    status: 'Fair',
+                    logoWidget: const TelenorLogo(),
+                    coverage: '75% 3G/4G Coverage',
+                    speed: '12 Mbps (Maintenance)',
+                    areas: 'Gilgit, Astore, Deosai',
+                    isDark: isDark,
+                    sheetBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    dividerColor: dividerColor,
+                    handleColor: handleColor,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-            ],
+                const SizedBox(height: 28),
+
+                // Community Network Reports Section
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Recent Community Reports',
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                FutureBuilder<List<NetworkModel>>(
+                  future: _reportsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(child: CircularProgressIndicator(color: Color(0xFF067A46))),
+                      );
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.cell_tower_rounded, color: textSecondary, size: 36),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No User Reports Yet',
+                              style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary),
+                            ),
+                            Text(
+                              'Tap "Report Status" to submit a report.',
+                              style: GoogleFonts.outfit(fontSize: 12, color: textSecondary),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final reports = snapshot.data!;
+                    return ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: reports.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final report = reports[index];
+                        final isPoor = report.networkStatus.toLowerCase().contains('poor') || report.networkStatus.toLowerCase().contains('no signal');
+                        final statusColor = isPoor ? const Color(0xFFEF4444) : report.networkStatus.toLowerCase().contains('fair') ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
+
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [BoxShadow(color: shadowColor, blurRadius: 8, offset: const Offset(0, 2))],
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      report.networkType.isNotEmpty ? report.networkType : 'Carrier Report',
+                                      style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: statusColor),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    report.timeAgo,
+                                    style: GoogleFonts.outfit(fontSize: 12, color: textSecondary),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on_outlined, size: 16, color: textSecondary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    report.location,
+                                    style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    report.signalStrength,
+                                    style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: textSecondary),
+                                  ),
+                                ],
+                              ),
+                              if (report.description.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  report.description,
+                                  style: GoogleFonts.outfit(fontSize: 13, color: textSecondary),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 80),
+              ],
+            ),
           ),
         ),
       ),
@@ -286,8 +466,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
     required Color handleColor,
   }) {
     final isFair = status.toLowerCase() == 'fair';
-    final statusColor =
-        isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
+    final statusColor = isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
 
     showModalBottomSheet(
       context: context,
@@ -412,8 +591,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
     required Color inactiveBarColor,
   }) {
     final isFair = status.toLowerCase() == 'fair';
-    final statusColor =
-        isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
+    final statusColor = isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
 
     return Container(
       width: double.infinity,
@@ -485,8 +663,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
   }
 
   Widget _buildSignalBars(int activeBars, bool isFair, Color inactiveBarColor) {
-    final activeColor =
-        isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
+    final activeColor = isFair ? const Color(0xFFF59E0B) : const Color(0xFF22C55E);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,

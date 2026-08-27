@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -171,13 +172,13 @@ class WeatherService {
             .insert(rows);
       }
 
-      print(
+      debugPrint(
         'Weather saved successfully: '
-            '${rows.length} records',
+        '${rows.length} records',
       );
     } catch (e) {
       // Weather should still work if database saving fails.
-      print('Weather Supabase save error: $e');
+      debugPrint('Weather Supabase save error: $e');
     }
   }
 

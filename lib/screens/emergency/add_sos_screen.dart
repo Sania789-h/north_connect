@@ -110,7 +110,7 @@ class _AddSOSScreenState extends State<AddSOSScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DropdownButtonFormField<String>(
-              value: selectedType,
+              initialValue: selectedType,
               style: TextStyle(color: textPrimary),
               dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               iconEnabledColor: dropdownIconColor,
@@ -142,7 +142,7 @@ class _AddSOSScreenState extends State<AddSOSScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: selectedLocation,
+              initialValue: selectedLocation,
               style: TextStyle(color: textPrimary),
               dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               iconEnabledColor: dropdownIconColor,

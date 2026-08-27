@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,9 +10,9 @@ import '../../widgets/custom_button.dart';
 import 'profile_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final Map<String, dynamic> currentProfile;
+  final Map<String, dynamic>? currentProfile;
 
-  const EditProfileScreen({super.key, required this.currentProfile});
+  const EditProfileScreen({super.key, this.currentProfile});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -59,12 +57,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final fallbackEmail = user?.email ?? '';
     final fallbackPhone = user?.phone ?? '';
 
-    final profileName =
-        (widget.currentProfile['full_name'] as String? ?? '').trim();
-    final profileEmail =
-        (widget.currentProfile['email'] as String? ?? '').trim();
-    final profilePhone =
-        (widget.currentProfile['phone'] as String? ?? '').trim();
+    final profileMap = widget.currentProfile ?? <String, dynamic>{};
+    final profileName = (profileMap['full_name'] as String? ?? '').trim();
+    final profileEmail = (profileMap['email'] as String? ?? '').trim();
+    final profilePhone = (profileMap['phone'] as String? ?? '').trim();
 
     _nameController = TextEditingController(
         text: profileName.isNotEmpty ? profileName : fallbackName);
@@ -73,10 +69,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phoneController = TextEditingController(
         text: profilePhone.isNotEmpty ? profilePhone : fallbackPhone);
     _bioController = TextEditingController(
-        text: (widget.currentProfile['bio'] as String? ?? '').trim());
+        text: (profileMap['bio'] as String? ?? '').trim());
     _locationController = TextEditingController(
-        text: (widget.currentProfile['location'] as String? ?? 'Gilgit-Baltistan').trim());
-    _selectedAvatarUrl = widget.currentProfile['avatar_url'] as String? ?? '';
+        text: (profileMap['location'] as String? ?? 'Gilgit-Baltistan').trim());
+    _selectedAvatarUrl = profileMap['avatar_url'] as String? ?? '';
   }
 
   @override
@@ -102,12 +98,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  String get _initial {
-    final name =
-        _nameController.text.trim().isEmpty ? 'U' : _nameController.text.trim();
-    return name[0].toUpperCase();
-  }
-
 
   Future<void> _pickAndUploadImage(ImageSource source) async {
     try {
@@ -120,6 +110,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       if (pickedFile == null) return;
 
+      if (!mounted) return;
       setState(() => _isUploadingImage = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -457,6 +448,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                           ],
                         ),
+                        if (_isUploadingImage)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.black45,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                              ),
+                            ),
+                          ),
                         Positioned(
                           bottom: 2,
                           right: 2,
@@ -550,25 +553,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   isLoading: _isLoading,
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _avatarFallback() {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_nameController]),
-      builder: (_, __) => Container(
-        color: const Color(0xFF1B547A),
-        child: Center(
-          child: Text(
-            _initial,
-            style: GoogleFonts.outfit(
-              fontSize: 46,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
             ),
           ),
         ),

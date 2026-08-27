@@ -155,7 +155,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         
                         const SizedBox(height: 12),
 
-                        // Title Text: GB CONNECT
+                        // Title Text: NORTH CONNECT
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
@@ -166,7 +166,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                             ),
                             children: const [
                               TextSpan(
-                                text: 'GB ',
+                                text: 'NORTH ',
                                 style: TextStyle(
                                   color: Color(0xFF0F2C59), // Deep Navy Blue
                                 ),

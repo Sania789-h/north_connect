@@ -20,6 +20,15 @@ class AlertsScreen extends StatefulWidget {
 class _AlertsScreenState extends State<AlertsScreen> {
   static const List<String> _kFilters = [
     'All',
+    'Emergency',
+    'Landslide',
+    'Road Blocked',
+    'Road Closed',
+    'Snowfall',
+    'Heavy Rain',
+    'Flooded Road',
+    'Road Damage',
+    'Traffic',
     'Weather',
     'Road',
     'Safety',

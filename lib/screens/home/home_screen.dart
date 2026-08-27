@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/app_images.dart';
+import '../../models/alert_model.dart';
 import '../../services/mock_database_service.dart';
 import '../../services/weather_service.dart';
 import '../../widgets/avatar_widget.dart';
@@ -54,6 +55,31 @@ class _HomeScreenState extends State<HomeScreen>
 
     _loadWeather();
     _loadUserProfile();
+    _loadLatestAlerts();
+  }
+
+  List<AlertModel> _latestAlerts = [];
+
+  Future<void> _loadLatestAlerts() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('alerts')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(3);
+      final dbAlerts = List<Map<String, dynamic>>.from(res)
+          .map((row) => AlertModel.fromMap(row))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _latestAlerts = dbAlerts.isNotEmpty ? dbAlerts : MockDatabaseService.alerts.take(3).toList();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _latestAlerts = MockDatabaseService.alerts.take(3).toList();
+      });
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -232,7 +258,7 @@ class _HomeScreenState extends State<HomeScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'GB CONNECT',
+                    'NORTH CONNECT',
                     style: GoogleFonts.outfit(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -799,6 +825,8 @@ class _HomeScreenState extends State<HomeScreen>
   // Latest Alerts
   // ─────────────────────────────────────────────
   Widget _buildLatestAlerts(bool isDark, Color textColor, Color subColor, Color cardBg, Color cardShadow, Color dividerColor, Color viewAllColor) {
+    final alerts = _latestAlerts.isEmpty ? MockDatabaseService.alerts.take(3).toList() : _latestAlerts;
+
     return Column(
       children: [
         _buildSectionHeader('Latest Alerts', textColor, viewAllColor, onViewAll: () => widget.onNavigateTab?.call(2)),
@@ -814,43 +842,31 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
             child: Column(
-              children: [
-                _buildAlertItem(
-                  icon: Icons.landslide_rounded,
-                  iconColor: const Color(0xFFEF4444),
-                  title: 'Landslide Warning',
-                  location: 'Hunza, Gilgit-Baltistan',
-                  timeAgo: '2h ago',
-                  textColor: textColor,
-                  subColor: subColor,
-                  chevronColor: isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1),
-                  onTap: () => widget.onNavigateTab?.call(2),
-                ),
-                Divider(height: 1, color: dividerColor, indent: 64),
-                _buildAlertItem(
-                  icon: Icons.flood_rounded,
-                  iconColor: const Color(0xFF3B82F6),
-                  title: 'Flood Advisory',
-                  location: 'Ghizer, Gilgit-Baltistan',
-                  timeAgo: '5h ago',
-                  textColor: textColor,
-                  subColor: subColor,
-                  chevronColor: isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1),
-                  onTap: () => widget.onNavigateTab?.call(2),
-                ),
-                Divider(height: 1, color: dividerColor, indent: 64),
-                _buildAlertItem(
-                  icon: Icons.warning_amber_rounded,
-                  iconColor: const Color(0xFFF59E0B),
-                  title: 'Road Closed',
-                  location: 'Babusar Top, Naran Road',
-                  timeAgo: '1d ago',
-                  textColor: textColor,
-                  subColor: subColor,
-                  chevronColor: isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1),
-                  onTap: () => widget.onNavigateTab?.call(2),
-                ),
-              ],
+              children: List.generate(alerts.length, (index) {
+                final alert = alerts[index];
+                final isLast = index == alerts.length - 1;
+                final isEmergency = alert.severity.toLowerCase() == 'high' || alert.category.toLowerCase().contains('emergency');
+                final isWarning = alert.severity.toLowerCase() == 'medium' || alert.category.toLowerCase().contains('road');
+                final iconColor = isEmergency ? const Color(0xFFEF4444) : isWarning ? const Color(0xFFF59E0B) : const Color(0xFF3B82F6);
+                final iconData = isEmergency ? Icons.warning_amber_rounded : isWarning ? Icons.directions_car_rounded : Icons.info_outline_rounded;
+
+                return Column(
+                  children: [
+                    _buildAlertItem(
+                      icon: iconData,
+                      iconColor: iconColor,
+                      title: alert.title,
+                      location: alert.location,
+                      timeAgo: alert.timeAgo.isNotEmpty ? alert.timeAgo : 'Recently',
+                      textColor: textColor,
+                      subColor: subColor,
+                      chevronColor: isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1),
+                      onTap: () => widget.onNavigateTab?.call(2),
+                    ),
+                    if (!isLast) Divider(height: 1, color: dividerColor, indent: 64),
+                  ],
+                );
+              }),
             ),
           ),
         ),

@@ -10,7 +10,7 @@ void main() async {
   await Future.wait([
     Supabase.initialize(
       url: 'https://orscgozycprnnhphltvr.supabase.co',
-      anonKey:
+      publishableKey:
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9yc2Nnb3p5Y3Bybm5ocGhsdHZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NjQ4ODksImV4cCI6MjA5NjA0MDg4OX0.Y233GfgNCWY_zoZydjTgkiyVAowwMaomu64H5VzPHzY',
     ),
     SettingsNotifier.instance.load(),
